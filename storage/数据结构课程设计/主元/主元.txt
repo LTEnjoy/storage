@@ -1,0 +1,49 @@
+int search0(int a[],int n)
+{
+	if (n == 0) //剩0个元素说明没有主元素
+		return 0;
+	if (n == 1)	//剩1个元素说明是主元素
+		return a[n - 1];
+	if (n % 2 != 0)		//若数组长度为奇数，直接判断最后一个数是否为主元素
+	{					//若不为主元素则舍弃最后一个数
+		if (check(a, 0, n - 1, a[n - 1]) == true)
+			return a[n - 1];
+	}
+	else //数组长度为偶数1
+	{
+		int count = 0;
+		for (int i = 0, j = 0;i < n;i += 2, j++)//运用比较计数法形成子数组
+		{
+			if (a[i] == a[i + 1])
+			{
+				a[j] = a[i];
+				count++;
+			}
+		}
+		return search0(a, count);  //调用递归
+	}
+	
+	int count = 0;
+	for (int i = 0, j = 0;i < n-1;i += 2, j++)//若数组有奇数个元素则去掉最后一个数
+	{
+		if (a[i] == a[i + 1])
+		{
+				a[j] = a[i];
+				count++;
+		}
+	}
+	return search0(a, count);//调用递归
+}
+bool check(int a[], int head, int tail,int num) //检查是否为主元素
+{
+	int count = 0;
+	for (int i = head;i <= tail;i++)
+	{
+		if (a[i] == num)
+			count++;
+	}
+	if (count > (tail - head + 1) / 2)
+		return true;
+	else
+		return false;
+}

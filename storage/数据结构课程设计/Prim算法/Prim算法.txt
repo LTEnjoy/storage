@@ -1,0 +1,92 @@
+struct vertexList
+{
+	int num; // 邻接节点在数组中的位置
+	int distance; // 节点到邻接节点的距离
+	vertexList * next;
+};
+
+struct vertex
+{
+	vertexList * next = NULL;  //邻接链表
+	int known = false;
+	int distance = 10000; // 10000代表无穷大
+	int lastVertex = 0;
+};
+
+vertex table[7];  
+
+void addVertex(vertex * v, int num, int distance) //为邻接链表添加元素
+{
+	if (v->next == NULL)
+	{
+		v->next = new vertexList{ num,distance,NULL };
+		return;
+	}
+	vertexList * t = v->next;
+	while (t->next!= NULL)
+		t = t->next;
+	t->next= new vertexList{ num,distance,NULL};
+}
+
+void initialize(int start,vertex table[], int n) //初始化以书上的图作为例子
+{
+	addVertex(&table[0], 1, 2);
+	addVertex(&table[1], 0, 2);
+	addVertex(&table[0], 3, 1);
+	addVertex(&table[3], 0, 1);
+	addVertex(&table[1], 3, 3);
+	addVertex(&table[3], 1, 3);
+	addVertex(&table[1], 4, 10);
+	addVertex(&table[4], 1, 10);
+	addVertex(&table[2], 5, 5);
+	addVertex(&table[5], 2, 5);
+	addVertex(&table[3], 2, 2);
+	addVertex(&table[2], 3, 2);
+	addVertex(&table[3], 4, 7);
+	addVertex(&table[4], 3, 7);
+	addVertex(&table[3], 5, 8);
+	addVertex(&table[5], 3, 8);
+	addVertex(&table[3], 6, 4);
+	addVertex(&table[6], 3, 4);
+	addVertex(&table[4], 6, 6);
+	addVertex(&table[6], 4, 6);
+	addVertex(&table[6], 5, 1);
+	addVertex(&table[5], 6, 1);
+	table[start].distance = 0;
+	table[start].next;
+}
+
+void Prim(vertex table[],int n)
+{
+	int i, now, distance;
+	vertexList * p;
+	while (true)
+	{
+		now = -1;
+		distance = 10000; //重新刷新v
+		for (i = 0;i < n;i++) //查找最小权重的未知顶点
+			if (table[i].distance < distance && table[i].known == false)
+			{
+				distance = table[i].distance;
+				now = i;
+			}
+		if (now == -1)
+			break;
+		table[now].known = true;
+		p = table[now].next;
+		while (p != NULL)
+		{
+			if (table[p->num].known == true)
+			{
+				p = p->next;
+				continue;
+			}
+			if (p->distance< table[p->num].distance)
+			{
+				table[p->num].distance = p->distance;
+				table[p->num].lastVertex = now;
+			}
+			p = p->next;
+		}
+	}
+}

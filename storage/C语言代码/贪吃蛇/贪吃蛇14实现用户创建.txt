@@ -1,0 +1,1654 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <windows.h>
+#include <conio.h>
+#include <graphics.h>
+#pragma comment(lib,"winmm.lib")
+#define length  1200
+#define width 700						//数组中0为通路，1为食物，2为毒草，3为障碍物, 4为地雷,5为蛇自己, 6为传送门；
+#define size sizeof(struct snake)
+#define Tab    9
+#define DEL   8
+#define LEFT  75
+#define RIGHT 77
+#define UP    72
+#define DOWN  80
+#define ESC   27
+#define ENTER 13
+#define SPACE 32
+#define point 10
+#define r 10
+#define S(x,y) map[(x-70)/20][(y-70)/20]
+#define F(x) x*20+70
+#define yuan(x,y) solidcircle(x, y, r)
+#define Dyuan(x,y) clearcircle(x, y, r)
+#define juxing(x,y) fillrectangle(x-r,y-r,x+r,y+r);
+#define Djuxing(x,y) clearrectangle(x-r,y-r,x+r,y+r);
+FILE * fp;
+IMAGE rank0, pic, cover, frame, gamechoose, setting, background, snake, snake_, star, star_, barrier, barrier_, barrier1, barrier1_;
+IMAGE barrier2, barrier2_, barrier3, barrier3_, body, body_, body1, body1_, body2, body2_, body3, body3_;
+IMAGE body0, body0_, body01, body01_, body02, body02_, body03, body03_, stone, stone_, blackhole, blackhole_, boom, boom_, TP, TP_;
+
+char map[54][29];
+char filename[20];
+char address[100] = "C:\\Users\\15716\\source\\repos\\Project9\\client\\";
+char type[6] = ".dat";
+struct snake * head, *tail, *tp;
+struct snake * p1;                       //蛇移动所需指针 
+struct snake * p;						//辅助指针
+int map_num;
+int TIME = 50;
+int BGM_judge = 1, SoundEffect = 1;
+int snake_num = 5;                       //初始化各个量
+int food_num = 5;
+int poison_num = 10;
+int boom_num = 2;
+int TP_num = 2;
+int speed = 3;
+int score;									//记录总分数
+char s[20];									//将总分数转化成字符串输出
+char Speed[10];								//自定义时提供难度设置
+char FoodNum[10];
+char PoisonNum[10];
+char BoomNum[10];
+
+struct snake       //定义蛇结构体
+{
+	int x;
+	int y;
+	struct snake * previous;
+	struct snake * next;
+};
+
+int chengfang(int n, int m)
+{
+	int i, k;
+	k = 1;
+	for (i = 0; i < m; i++)
+		k *= n;
+	return k;
+}
+
+void rank(int n[], int m)     //冒泡排序函数 
+{
+	int k;
+	for (int j = m - 1; j > 0; j--)
+		for (int i = 0; i < j; i++)
+			if (n[i] < n[i + 1])
+			{
+				k = n[i];
+				n[i] = n[i + 1];
+				n[i + 1] = k;
+			}
+}
+
+void paihang(int score)
+{
+	char n[10][10], m[10][10] = { 0 };    //n用来显示旧的10个记录，m用来输入新的10个记录	
+	int count[10];
+	int	num[11] = { 0 };
+	int i, j, number;
+	number = 0;
+	fopen_s(&fp, "C:\\Users\\15716\\source\\repos\\Project9\\rank.dat", "r");
+	for (i = 0; i < 10; i++)
+	{
+		fgets(n[i], 10, fp);
+		if (n[i][0] == ' ')
+			break;
+		count[i] = strlen(n[i]) - 1;
+		if (n[i][0] == '-')
+			for (j = 0;j < count[i] - 1;j++)
+				num[i] -= (n[i][count[i] - j - 1] - '0')* chengfang(10, j);
+		else
+			for (j = 0;j < count[i];j++)
+				num[i] += (n[i][count[i] - j - 1] - '0')* chengfang(10, j);
+		number++;
+	}
+	fclose(fp);
+	num[number] = score;
+	rank(num, number + 1);
+	fopen_s(&fp, "C:\\Users\\15716\\source\\repos\\Project9\\rank.dat", "w");
+	for (i = 0;i < 10;i++)
+	{
+		if (i < number + 1)
+		{
+			sprintf_s(m[i], "%d", num[i]);
+			fputs(m[i], fp);
+			fputc(' ', fp);
+			if (num[i] == score)
+				fputs(filename, fp);
+		}
+		else
+			fputs(" - - -", fp);
+		fputc('\n', fp);
+	}
+	fclose(fp);
+}
+
+void graph()   //地图初始化
+{
+	int i, j;
+	score = 0;
+	setbkmode(OPAQUE);
+	cleardevice();
+	settextstyle(32, 0, _T("微软雅黑"));
+	settextcolor(WHITE);
+	outtextxy(1200, 0, "分数:");
+	outtextxy(1200, 100, "游戏规则:");
+	settextstyle(25, 0, _T("微软雅黑"));
+	outtextxy(1200, 140, "方向键控制蛇的移动");
+	outtextxy(1200, 180, "ESC 暂停（再按恢复）");
+	yuan(1210, 230);
+	outtextxy(1230, 220, "食物，吃一个+5分");
+	setfillcolor(RED);
+	yuan(1210, 270);
+	outtextxy(1230, 260, "毒草，吃一个-10分");
+	setfillcolor(BLACK);
+	yuan(1210, 310);
+	outtextxy(1230, 300, "地雷，吃一个-30分");
+	outtextxy(1200, 340, "碰到障碍物或吃到自己");
+	outtextxy(1200, 380, "死亡");
+	settextstyle(32, 0, _T("微软雅黑"));
+	setfillcolor(BLUE);
+	sprintf_s(s, "%d", score);
+	outtextxy(1260, 0, s);
+	for (i = 0; i < 54; i++)
+		for (j = 0; j < 29; j++)
+			map[i][j] = 3;
+	for (i = 1; i < 53; i++)
+		for (j = 1; j < 28; j++)
+			map[i][j] = 0;
+	FILE *fp;
+	char sign;
+	fopen_s(&fp, "C:\\Users\\15716\\source\\repos\\Project9\\map\\map1.dat", "r");
+	switch (map_num)
+	{
+	case 0: fclose(fp); fopen_s(&fp, "C:\\Users\\15716\\source\\repos\\Project9\\map\\map0.dat", "r");break;
+	case 1: fclose(fp); fopen_s(&fp, "C:\\Users\\15716\\source\\repos\\Project9\\map\\map1.dat", "r");break;
+	case 2: fclose(fp); fopen_s(&fp, "C:\\Users\\15716\\source\\repos\\Project9\\map\\map2.dat", "r");break;
+	case 3: fclose(fp); fopen_s(&fp, "C:\\Users\\15716\\source\\repos\\Project9\\map\\map3.dat", "r");break;
+	}
+	for (int i = 1; i < 53; i++)
+		for (int j = 1; j < 28; j++)
+		{
+			sign = fgetc(fp) - '0';
+			if (sign == 3)
+			{
+				map[i][j] = 3;
+				juxing(F(i), F(j));
+			}
+		}
+	fclose(fp);
+}
+
+void clear_poison()
+{
+	int i, j;
+	for (i = 0; i < length / (2 * r) - 1; i++)
+		for (j = 0; j < width / (2 * r) - 1; j++)
+			if (map[i][j] == 2)
+			{
+				map[i][j] = 0;
+				Dyuan(F(i), F(j));
+			}
+}
+
+void reprint_boom()
+{
+	int x, y;
+	srand(time(0));
+	while (1)
+	{
+		x = (rand() % 52 + 1) * 20 + 70;
+		y = (rand() % 27 + 1) * 20 + 70;
+		if (S(x, y) == 0)
+			break;
+	}
+	S(x, y) = 4;
+	setfillcolor(BLACK);
+	yuan(x, y);
+	score -= 30;
+	outtextxy(1260, 0, "      ");
+	sprintf_s(s, "%d", score);
+	outtextxy(1260, 0, s);
+}
+
+void definition_TP()        //定义传送门
+{
+	int i, x, y;
+	srand(time(0));
+	p = tp = (struct snake *) malloc(size);
+	for (i = 0;i < TP_num;i++)
+	{
+		while (1)
+		{
+			x = (rand() % 52 + 1) * 20 + 70;
+			y = (rand() % 27 + 1) * 20 + 70;
+			if (S(x, y) == 0)
+				break;
+		}
+		tp->x = x;
+		tp->y = y;
+		S(x, y) = 6;
+		if (i == TP_num - 1)
+			break;
+		tp = (struct snake *) malloc(size);
+		p->next = p->previous = tp;
+		tp->next = tp->previous = p;
+	}
+}
+
+void snake_TP()
+{
+	while (1)
+	{
+		if (head->x == tp->x && head->y == tp->y)
+			tp = tp->next;
+		else
+		{
+			head->x = tp->x;
+			head->y = tp->y;
+			break;
+		}
+	}
+}
+
+void definition_boom()       //定义地雷
+{
+	int i, x, y;
+	srand(time(0));
+	for (i = 0;i < boom_num;i++)
+	{
+		while (1)
+		{
+			x = (rand() % 52 + 1) * 20 + 70;
+			y = (rand() % 27 + 1) * 20 + 70;
+			if (S(x, y) == 0)
+				break;
+		}
+		S(x, y) = 4;
+	}
+}
+
+void print_poison()
+{
+	int i, j;
+	setfillcolor(RED);
+	for (i = 0; i < length / (2 * r) - 1; i++)
+		for (j = 0; j < width / (2 * r) - 1; j++)
+			if (map[i][j] == 2)
+				yuan(F(i), F(j));
+}
+
+void reprint_poison()
+{
+	int x, y;
+	srand(time(0));
+	while (1)
+	{
+		x = (rand() % 52 + 1) * 20 + 70;
+		y = (rand() % 27 + 1) * 20 + 70;
+		if (S(x, y) == 0)
+			break;
+	}
+	S(x, y) = 2;
+	setfillcolor(RED);
+	yuan(x, y);
+	score -= 10;
+	outtextxy(1260, 0, "      ");
+	sprintf_s(s, "%d", score);
+	outtextxy(1260, 0, s);
+}
+
+void delete_poison()
+{
+	int i, j;
+	for (i = 0; i < length / (2 * r) - 1; i++)
+		for (j = 0; j < width / (2 * r) - 1; j++)
+			if (map[i][j] == 2)
+				Dyuan(F(i), F(j));
+}
+
+void definition_poison()       //定义毒草
+{
+	int i, x, y;
+	srand(time(0));
+	for (i = 0;i < poison_num;i++)
+	{
+		while (1)
+		{
+			x = (rand() % 52 + 1) * 20 + 70;
+			y = (rand() % 27 + 1) * 20 + 70;
+			if (S(x, y) == 0)
+				break;
+		}
+		S(x, y) = 2;
+	}
+}
+
+void print_snake()
+{
+	p1 = head->previous;
+	setfillcolor(BLACK);
+	for (int i = 0; i < snake_num-1; i++)
+	{
+		if (i == snake_num - 2)
+			if (p1->x != (p1->next)->x)
+				if (p1->x > (p1->next)->x)
+				{
+					putimage(p1->x - 25, p1->y - 25, &body_, SRCAND);
+					putimage(p1->x - 25, p1->y - 25, &body, SRCPAINT);
+				}
+				else
+				{
+					putimage(p1->x - 25, p1->y - 25, &body2_, SRCAND);
+					putimage(p1->x - 25, p1->y - 25, &body2, SRCPAINT);
+				}
+			else
+				if (p1->y > (p1->next)->y)
+				{
+					putimage(p1->x - 25, p1->y - 25, &body3_, SRCAND);
+					putimage(p1->x - 25, p1->y - 25, &body3, SRCPAINT);
+				}
+				else
+				{
+					putimage(p1->x - 25, p1->y - 25, &body1_, SRCAND);
+					putimage(p1->x - 25, p1->y - 25, &body1, SRCPAINT);
+				}
+		else
+			if(p1->x != (p1->next)->x)
+				if (p1->x > (p1->next)->x)
+				{
+					putimage(p1->x - 25, p1->y - 25, &body0_, SRCAND);
+					putimage(p1->x - 25, p1->y - 25, &body0, SRCPAINT);
+				}
+				else
+				{
+					putimage(p1->x - 25, p1->y - 25, &body02_, SRCAND);
+					putimage(p1->x - 25, p1->y - 25, &body02, SRCPAINT);
+				}
+			else
+				if (p1->y > (p1->next)->y)
+				{
+					putimage(p1->x - 25, p1->y - 25, &body03_, SRCAND);
+					putimage(p1->x - 25, p1->y - 25, &body03, SRCPAINT);
+				}
+				else
+				{
+					putimage(p1->x - 25, p1->y - 25, &body01_, SRCAND);
+					putimage(p1->x - 25, p1->y - 25, &body01, SRCPAINT);
+				}
+			S(p1->x, p1->y) = 5;
+			p1 = p1->previous;
+	}
+	putimage(head->x - 15, head->y - 15, &snake_, SRCAND);
+	putimage(head->x - 15, head->y - 15, &snake, SRCPAINT);
+
+}
+
+void boombody()
+{
+	int i, p;
+	p = snake_num;
+	snake_num /= 2;
+
+	for (i = 0; i < p - snake_num; i++)
+	{
+		p1 = tail;
+		tail = tail->next;
+		Dyuan(p1->x, p1->y);
+		S(p1->x, p1->y) = 0;
+		free(p1);
+	}
+}
+
+void deletebody()
+{
+	p1 = tail;
+	tail = tail->next;
+	Dyuan(p1->x, p1->y);
+	S(p1->x, p1->y) = 0;
+	free(p1);
+	snake_num--;
+}
+
+void createbody(int x, int y)
+{
+	p = (struct snake *) malloc(size);
+	p->next = tail;
+	tail->previous = p;
+	tail = p;
+	tail->x = x;
+	tail->y = y;
+	snake_num++;
+}
+
+void reprint_food()
+{
+	int x, y;
+	srand(time(0));
+	while (1)
+	{
+		x = (rand() % 52 + 1) * 20 + 70;
+		y = (rand() % 27 + 1) * 20 + 70;
+		if (S(x, y) == 0)
+			break;
+	}
+	S(x, y) = 1;
+	setfillcolor(BLUE);
+	yuan(x, y);
+	score += 5;
+	outtextxy(1260, 0, "      ");
+	sprintf_s(s, "%d", score);
+	outtextxy(1260, 0, s);
+}
+
+void definition_food()       //定义食物
+{
+	int i, x, y;
+	srand(time(0));
+	for (i = 0;i < food_num;i++)
+	{
+		while (1)
+		{
+			x = (rand() % 52 + 1) * 20 + 70;
+			y = (rand() % 27 + 1) * 20 + 70;
+			if (S(x, y) == 0)
+				break;
+		}
+		S(x, y) = 1;
+	}
+}
+
+void definition_snake()       //定义蛇链表 
+{
+	int i;
+	snake_num = 5;
+	p = tail = head = (struct snake *) malloc(size);
+
+	head->x = 510;
+	head->y = 310;
+	for (i = 1; i < snake_num; i++)
+	{
+		head = (struct snake *) malloc(size);
+		p->next = head;
+		head->previous = p;
+		head->next = NULL;
+		p = head;
+		head->x = 510 + r * 2 * i;
+		head->y = 310;
+	}
+	setfillcolor(BLACK);
+	setlinecolor(WHITE);
+	print_snake();
+}
+
+void print()
+{
+	int i, j;
+	setfillcolor(BLUE);
+	for (i = 0;i < 7;i++)
+	{
+		if (i % 2 == 0)
+		{
+			putimage(i * 170, 0, &barrier_, SRCAND);
+			putimage(i * 170, 0, &barrier, SRCPAINT);
+			putimage(i * 170, 600, &barrier_, SRCAND);
+			putimage(i * 170, 600, &barrier, SRCPAINT);
+		}
+		else
+		{
+			putimage(i * 170, 0, &barrier1_, SRCAND);
+			putimage(i * 170, 0, &barrier1, SRCPAINT);
+			putimage(i * 170, 600, &barrier_, SRCAND);
+			putimage(i * 170, 600, &barrier, SRCPAINT);
+		}
+	}
+	for (i = 0;i < 4;i++)
+	{
+		if (i % 2 == 0)
+		{
+			putimage(0, i * 170, &barrier2_, SRCAND);
+			putimage(0, i * 170, &barrier2, SRCPAINT);
+			putimage(1100, i * 170, &barrier2_, SRCAND);
+			putimage(1100, i * 170, &barrier2, SRCPAINT);
+		}
+		else
+		{
+			putimage(0, i * 170, &barrier3_, SRCAND);
+			putimage(0, i * 170, &barrier3, SRCPAINT);
+			putimage(1100, i * 170, &barrier3_, SRCAND);
+			putimage(1100, i * 170, &barrier3, SRCPAINT);
+		}
+	}
+	for (i = 1; i < 53; i++)
+		for (j = 1; j < 28; j++)
+			switch (map[i][j])
+			{
+			case 0:break;
+			case 1: putimage(F(i) - 15, F(j) - 15, &star_, SRCAND); putimage(F(i) - 15, F(j) - 15, &star, SRCPAINT);break;
+			case 2: putimage(F(i) - 15, F(j) - 15, &blackhole_, SRCAND); putimage(F(i) - 15, F(j) - 15, &blackhole, SRCPAINT);break;
+			case 3: putimage(F(i) - 15, F(j) - 15, &stone_, SRCAND); putimage(F(i) - 15, F(j) - 15, &stone, SRCPAINT);break;
+			case 4: putimage(F(i) - 20, F(j) - 20, &boom_, SRCAND); putimage(F(i) - 20, F(j) - 20, &boom, SRCPAINT);break;
+			case 6: putimage(F(i) - 15, F(j) - 15, &TP_, SRCAND); putimage(F(i) - 15, F(j) - 15, &TP, SRCPAINT);break;
+			}
+}
+
+int move()                //让蛇移动 
+{
+	int key = RIGHT;
+	int judge;
+	int i, x, y;
+	int end = 0;
+	int count = 0;
+	int shine = 0;
+	BeginBatchDraw();
+	while (1)
+	{
+		count++;
+		shine++;
+		if (shine == 5)
+			delete_poison();
+		if (shine == 10)
+		{
+			print_poison();
+			shine = 0;
+		}if (count == 80)
+		{
+			clear_poison();
+			definition_poison();
+			count = 0;
+		}
+		p1 = tail;
+		x = p1->x;
+		y = p1->y;
+		for (i = 0; i < snake_num - 1; i++)
+		{
+			p1->x = (p1->next)->x;
+			p1->y = (p1->next)->y;
+			p1 = p1->next;
+		}
+		switch (key)
+		{
+		case RIGHT:
+			head->x += r*2 ;
+			break;
+		case UP:
+			head->y -= r*2 ;
+			break;
+		case LEFT:
+			head->x -= r*2;
+			break;
+		case DOWN:
+			head->y += r*2 ;
+			break;
+		}
+		switch (S(head->x, head->y))
+		{
+		case 1:
+			createbody(x, y);
+			reprint_food();
+			break;
+		case 2:
+
+			if (snake_num == 1)
+				end = 1;
+			else
+			{
+				deletebody();
+				reprint_poison();
+			}break;
+		case 4:
+			if (snake_num == 1)
+				end = 1;
+			else
+			{
+				boombody();
+				reprint_boom();
+			}
+		case 0: break;
+		case 5: end = 1;break;
+		case 6: snake_TP();break;
+		case 3: end = 1;break;
+		}
+		if (end == 1)
+			break;
+		S(x, y) = 0;
+		S(head->x, head->y) = 5;
+		S(tp->x, tp->y) = S((tp->next)->x, (tp->next)->y) = 6;
+		putimage(0, 0, &background);
+		print();
+		print_snake();
+		FlushBatchDraw();
+		if (_kbhit() == 1)
+		{
+			judge = _getch();
+			if (judge == 224)
+				switch (judge = _getch())
+				{
+				case UP:if (key != DOWN)
+					key = judge;
+					break;
+				case RIGHT:if (key != LEFT)
+					key = judge;
+					break;
+				case DOWN:if (key != UP)
+					key = judge;
+					break;
+				case LEFT:if (key != RIGHT)
+					key = judge;
+					break;
+				}
+			if (judge == ESC)
+				while (judge = _getch() != ESC)
+					;
+		}
+		Sleep(TIME);
+	}
+	p1 = tail;
+	while (tail != NULL)
+	{
+		tail = tail->next;
+		free(p1);
+		p1 = tail;
+	}
+	EndBatchDraw();
+	putimage(250, 150, &pic);
+	setbkmode(TRANSPARENT);
+	settextcolor(WHITE);
+	settextstyle(128, 0, _T("微软雅黑"));
+	outtextxy(450, 200, "你输了！");
+	settextstyle(50, 0, _T("微软雅黑"));
+	outtextxy(450, 400, "你的分数：");
+	outtextxy(650, 400, s);
+	outtextxy(350, 550, "重新游戏");
+	outtextxy(660, 550, "返回主界面");
+	settextstyle(50, 0, _T("微软雅黑"));
+	paihang(score);
+
+	int line = 350;
+	while (1)
+	{
+		judge = _getch();
+		settextcolor(WHITE);
+		outtextxy(350, 550, "重新游戏");
+		outtextxy(660, 550, "返回主界面");
+		if (judge == 224)
+		{
+			judge = _getch();
+			if (judge == RIGHT || judge == LEFT)
+				if (line == 350)
+				{
+					line = 650;
+					settextcolor(RED);
+					outtextxy(660, 550, "返回主界面");
+				}
+				else
+				{
+					line = 350;
+					settextcolor(RED);
+					outtextxy(350, 550, "重新游戏");
+				}
+		}
+		if (judge == ENTER)
+		{
+			if (line == 350)
+				return 1;
+			else
+				return 0;
+			break;
+		}
+	}
+}
+
+void build_barrier()
+{
+	int x = 510;
+	int y = 310;
+	int judge;
+	int i, j;
+	setbkcolor(GREEN);
+	cleardevice();
+	setfillcolor(BLUE);
+	for (i = 0;i < 7;i++)
+	{
+		if (i % 2 == 0)
+		{
+			putimage(i * 170, 0, &barrier_, SRCAND);
+			putimage(i * 170, 0, &barrier, SRCPAINT);
+			putimage(i * 170, 600, &barrier_, SRCAND);
+			putimage(i * 170, 600, &barrier, SRCPAINT);
+		}
+		else
+		{
+			putimage(i * 170, 0, &barrier1_, SRCAND);
+			putimage(i * 170, 0, &barrier1, SRCPAINT);
+			putimage(i * 170, 600, &barrier_, SRCAND);
+			putimage(i * 170, 600, &barrier, SRCPAINT);
+		}
+	}
+	for (i = 0;i < 4;i++)
+	{
+		if (i % 2 == 0)
+		{
+			putimage(0, i * 170, &barrier2_, SRCAND);
+			putimage(0, i * 170, &barrier2, SRCPAINT);
+			putimage(1100, i * 170, &barrier2_, SRCAND);
+			putimage(1100, i * 170, &barrier2, SRCPAINT);
+		}
+		else
+		{
+			putimage(0, i * 170, &barrier3_, SRCAND);
+			putimage(0, i * 170, &barrier3, SRCPAINT);
+			putimage(1100, i * 170, &barrier3_, SRCAND);
+			putimage(1100, i * 170, &barrier3, SRCPAINT);
+		}
+	}
+	settextstyle(32, 0, _T("微软雅黑"));
+	settextcolor(BLACK);
+	outtextxy(1200, 0, "方向键移动光点");
+	outtextxy(1200, 50, "空格设置障碍");
+	outtextxy(1200, 100, "再按消去障碍");
+	outtextxy(1200, 150, "回车开始游戏");
+	for (i = 0; i < 54; i++)
+		for (j = 0; j < 29; j++)
+			map[i][j] = 3;
+	for (i = 1; i < 53; i++)
+		for (j = 1; j < 28; j++)
+			map[i][j] = 0;
+	while (1)
+	{
+		yuan(x, y);
+		judge = _getch();
+		if (judge == SPACE)
+			if (S(x, y) == 0)
+			{
+				S(x, y) = 3;
+				juxing(x, y);
+			}
+			else
+			{
+				S(x, y) = 0;
+				Djuxing(x, y);
+			}
+		if (judge == ENTER)
+			break;
+		if (judge == 224)
+		{
+			Dyuan(x, y);
+			switch (judge = _getch())
+			{
+			case UP: if (y != 90) y -= r * 2;
+				break;
+			case RIGHT:if (x != 1110) x += r * 2;
+				break;
+			case DOWN:if (y != 610) y += r * 2;
+				break;
+			case LEFT: if (x != 90)x -= r * 2;
+				break;
+			}
+		}
+	}
+	for (int i = 1; i < 51; i++)
+		for (int j = 1; j < 26; j++)
+			if (map[i][j] == 3)
+				juxing(F(i), F(j));
+
+	FILE *fp;
+	char sign;
+	fopen_s(&fp, "C:\\Users\\15716\\source\\repos\\Project9\\map\\map0.dat", "w");
+	for (int i = 1; i < 53; i++)
+		for (int j = 1; j < 28; j++)
+		{
+			sign = map[i][j] + '0';
+			fputc(sign, fp);
+		}
+	fclose(fp);
+	map_num = 0;
+}
+
+int game_start()
+{
+	int i;
+	graph();
+	definition_snake();
+	print_snake();
+	definition_food();
+	definition_TP();
+	definition_poison();
+	definition_boom();
+	print();
+	i = move();
+	return i;
+}
+
+int mainmenu()
+{
+	int judge, high, enter;
+	high = 30;
+	enter = 0;
+	putimage(0, 0, &cover);
+	putimage(10, 10, &frame);
+	putimage(10, 110, &frame);
+	putimage(10, 210, &frame);
+	putimage(10, 310, &frame);
+	setbkcolor(BLACK);
+	settextcolor(WHITE);
+	settextstyle(32, 0, _T("微软雅黑"));
+	outtextxy(60, 30, _T("新建用户"));
+	outtextxy(60, 130, _T("用户登录"));
+	outtextxy(60, 230, _T("排行榜"));
+	outtextxy(60, 330, _T("退出游戏"));
+	while (1)
+	{
+		judge = _getch();
+		if (judge == 224)
+		{
+			judge = _getch();
+			if (judge == UP)
+				if (high == 30)
+					high = 330;
+				else
+					high -= 100;
+			if (judge == DOWN)
+				if (high == 330)
+					high = 30;
+				else
+					high += 100;
+			settextcolor(WHITE);
+			outtextxy(60, 30, _T("新建用户"));
+			outtextxy(60, 130, _T("用户登录"));
+			outtextxy(60, 230, _T("排行榜"));
+			outtextxy(60, 330, _T("退出游戏"));
+			switch (high)
+			{
+			case 30: settextcolor(RED); outtextxy(60, 30, _T("新建用户")); break;
+			case 130:settextcolor(RED); outtextxy(60, 130, _T("用户登录")); break;
+			case 230:settextcolor(RED); outtextxy(60, 230, _T("排行榜")); break;
+			case 330:settextcolor(RED); outtextxy(60, 330, _T("退出游戏")); break;
+			}
+		}
+		if (judge == ENTER)
+			switch (high)
+			{
+			case 30: enter = 1; break;
+			case 130: enter = 2; break;
+			case 230: enter = 3; break;
+			case 330: enter = 4; break;
+			}
+		if (enter != 0)
+			break;
+	}
+	return enter;
+}
+
+void RANK()
+{
+	int i;
+	char score[10], number[10];
+	FILE *fp;
+	settextcolor(WHITE);
+	setbkmode(TRANSPARENT);
+	settextstyle(40, 0, _T("微软雅黑"));
+	putimage(500, 50, &rank0);
+	fopen_s(&fp, "C:\\Users\\15716\\source\\repos\\Project9\\rank.dat", "r");
+	for (i = 0;i < 10;i++)
+	{
+		sprintf_s(number, "%d.", i + 1);
+		outtextxy(500, 70 + i * 45, number);
+		fgets(score, 10, fp);
+		outtextxy(540, 70 + i * 45, score);
+	}
+	settextstyle(50, 0, _T("微软雅黑"));
+	fclose(fp);
+	outtextxy(660, 550, "确定");
+	i = _getch();
+	while (i != ENTER && i != ESC)
+		i = _getch();
+}
+
+void set()
+{
+	int high = 70;
+	int judge, end;
+	end = 0;
+	setbkmode(OPAQUE);
+	putimage(500, 50, &setting);
+	settextcolor(WHITE);
+	settextstyle(40, 0, _T("微软雅黑"));
+	outtextxy(500, 70, "背景音乐");
+	if (BGM_judge == 1)
+		outtextxy(800, 70, "开");
+	else
+		outtextxy(800, 70, "关");
+	outtextxy(500, 130, "音效音乐");
+	if (SoundEffect == 1)
+		outtextxy(800, 130, "开");
+	else
+		outtextxy(800, 130, "关");
+	sprintf_s(FoodNum, "%d", food_num);
+	sprintf_s(PoisonNum, "%d", poison_num);
+	sprintf_s(BoomNum, "%d", boom_num);
+	sprintf_s(Speed, "%d", speed);
+	outtextxy(500, 190, "移动速度"); outtextxy(800, 190, Speed);
+	outtextxy(500, 250, "毒草数量"); outtextxy(800, 250, PoisonNum);
+	outtextxy(500, 310, "地雷数量"); outtextxy(800, 310, BoomNum);
+	outtextxy(500, 370, "食物数量"); outtextxy(800, 370, FoodNum);
+	outtextxy(660, 430, "确定");
+	while (1)
+	{
+		judge = _getch();
+		if (judge == ESC)
+			break;
+		if (judge == 224)
+		{
+			judge = _getch();
+			if (judge == UP)
+				if (high != 70)
+					high -= 60;
+			if (judge == DOWN)
+				if (high != 430)
+					high += 60;
+			settextcolor(WHITE);
+			settextstyle(40, 0, _T("微软雅黑"));
+			outtextxy(500, 70, "背景音乐");
+			outtextxy(500, 130, "音效音乐");
+			outtextxy(660, 430, "确定");
+			outtextxy(500, 190, "移动速度"); outtextxy(800, 190, Speed);
+			outtextxy(500, 250, "毒草数量"); outtextxy(800, 250, PoisonNum);
+			outtextxy(500, 310, "地雷数量"); outtextxy(800, 310, BoomNum);
+			outtextxy(500, 370, "食物数量"); outtextxy(800, 370, FoodNum);
+			switch (high)
+			{
+			case 70: settextcolor(RED); outtextxy(500, 70, "背景音乐"); break;
+			case 130:settextcolor(RED); outtextxy(500, 130, "音效音乐"); break;
+			case 190:settextcolor(RED); outtextxy(500, 190, "移动速度"); break;
+			case 250:settextcolor(RED); outtextxy(500, 250, "毒草数量"); break;
+			case 310:settextcolor(RED); outtextxy(500, 310, "地雷数量"); break;
+			case 370:settextcolor(RED); outtextxy(500, 370, "食物数量"); break;
+			case 430:settextcolor(RED); outtextxy(660, 430, "确定"); break;
+			}
+		}
+		if (judge == ENTER)
+			switch (high)
+			{
+			case 70: settextcolor(WHITE);
+				if (BGM_judge == 1)
+				{
+					BGM_judge = 0;
+					outtextxy(800, 70, "关");
+				}
+				else
+				{
+					BGM_judge = 1;
+					outtextxy(800, 70, "开");
+				}break;
+			case 130: settextcolor(WHITE);
+				if (SoundEffect == 1)
+				{
+					SoundEffect = 0;
+					outtextxy(800, 130, "关");
+				}
+				else
+				{
+					SoundEffect = 1;
+					outtextxy(800, 130, "开");
+				}break;
+			case 190: settextcolor(RED); outtextxy(800, 190, Speed);
+				while (1)
+				{
+					judge = _getch();
+					if (judge == ESC || judge == ENTER)
+					{
+						settextcolor(WHITE);
+						outtextxy(800, 190, Speed);
+						break;
+					}
+					if (judge == 224)
+					{
+						judge = _getch();
+						if (judge == RIGHT)
+							if (speed != 5)
+							{
+								speed++;
+								TIME -= 10;
+							}
+						if (judge == LEFT)
+							if (speed != 1)
+							{
+								TIME += 10;
+								speed--;
+							}
+						sprintf_s(Speed, "%d", speed);
+						outtextxy(800, 190, "    ");
+						outtextxy(800, 190, Speed);
+					}
+				} break;
+			case 250: settextcolor(RED); outtextxy(800, 250, PoisonNum);
+				while (1)
+				{
+					judge = _getch();
+					if (judge == ESC || judge == ENTER)
+					{
+						settextcolor(WHITE);
+						outtextxy(800, 250, PoisonNum);
+						break;
+					}
+					if (judge == 224)
+					{
+						judge = _getch();
+						if (judge == RIGHT)
+							if (poison_num != 50)
+								poison_num++;
+						if (judge == LEFT)
+							if (poison_num != 1)
+								poison_num--;
+						sprintf_s(PoisonNum, "%d", poison_num);
+						outtextxy(800, 250, "    ");
+						outtextxy(800, 250, PoisonNum);
+					}
+				}break;
+			case 310: settextcolor(RED); outtextxy(800, 310, BoomNum);
+				while (1)
+				{
+					judge = _getch();
+					if (judge == ESC || judge == ENTER)
+					{
+						settextcolor(WHITE);
+						outtextxy(800, 310, BoomNum);
+						break;
+					}
+					if (judge == 224)
+					{
+						judge = _getch();
+						if (judge == RIGHT)
+							if (boom_num != 50)
+								boom_num++;
+						if (judge == LEFT)
+							if (boom_num != 1)
+								boom_num--;
+						sprintf_s(BoomNum, "%d", boom_num);
+						outtextxy(800, 310, "    ");
+						outtextxy(800, 310, BoomNum);
+					}
+				}break;
+			case 370: settextcolor(RED); outtextxy(800, 370, FoodNum);
+				while (1)
+				{
+					judge = _getch();
+					if (judge == ESC || judge == ENTER)
+					{
+						settextcolor(WHITE);
+						outtextxy(800, 370, FoodNum);
+						break;
+					}
+					if (judge == 224)
+					{
+						judge = _getch();
+						if (judge == RIGHT)
+							if (food_num != 50)
+								food_num++;
+						if (judge == LEFT)
+							if (food_num != 1)
+								food_num--;
+						sprintf_s(FoodNum, "%d", food_num);
+						outtextxy(800, 370, "    ");
+						outtextxy(800, 370, FoodNum);
+					}
+				}break;
+			case 430: end = 1;break;
+			}
+		if (end == 1)
+			break;
+	}
+}
+
+int choose_map()
+{
+	IMAGE MAP1, map1, MAP2, map2, MAP3, map3, coverpart;
+	int judge, map;
+	map = 1;
+	getimage(&coverpart, 900, 0, 500, 700);
+	loadimage(&MAP1, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\map1.jpg"), 500, 300);
+	loadimage(&map1, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\map1.jpg"), 150, 75);
+	loadimage(&MAP2, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\map2.jpg"), 500, 300);
+	loadimage(&map2, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\map2.jpg"), 150, 75);
+	loadimage(&MAP3, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\map3.jpg"), 500, 300);
+	loadimage(&map3, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\map3.jpg"), 150, 75);
+	putimage(900, 10, &MAP1);
+	putimage(1200, 320, &map2);
+	putimage(1200, 420, &map3);
+	while (1)
+	{
+		judge = _getch();
+		if (judge == 224)
+		{
+			judge = _getch();
+			if (judge == UP)
+				if (map != 1)
+					map--;
+				else
+					map = 3;
+			if (judge == DOWN)
+				if (map != 3)
+					map++;
+				else
+					map = 1;
+		}
+		putimage(900, 0, &coverpart);
+		switch (map)
+		{
+		case 1: putimage(900, 10, &MAP1);
+			putimage(1200, 320, &map2);
+			putimage(1200, 420, &map3); break;
+		case 2: putimage(900, 10, &MAP2);
+			putimage(1200, 320, &map3);
+			putimage(1200, 420, &map1); break;
+		case 3: putimage(900, 10, &MAP3);
+			putimage(1200, 320, &map1);
+			putimage(1200, 420, &map2); break;
+		}
+		if (judge == ESC)
+		{
+			putimage(900, 0, &coverpart);
+			return 0;
+		}
+		if (judge == ENTER)
+		{
+			map_num = map;
+			return 1;
+		}
+	}
+}
+
+int game_choose()
+{
+	int judge;
+	int high = 130;
+	int end = 0;
+	putimage(500, 100, &gamechoose);
+	setbkmode(TRANSPARENT);
+	settextstyle(40, 0, _T("微软雅黑"));
+	settextcolor(WHITE);
+	outtextxy(630, 130, "冒险模式");
+	outtextxy(630, 200, "选图模式");
+	outtextxy(630, 270, "DIY模式");
+	outtextxy(660, 340, "返回");
+	while (1)
+	{
+		judge = _getch();
+		if (judge == 224)
+		{
+			judge = _getch();
+			if (judge == UP)
+				if (high != 130)
+					high -= 70;
+			if (judge == DOWN)
+				if (high != 340)
+					high += 70;
+			settextcolor(WHITE);
+			outtextxy(630, 130, "冒险模式");
+			outtextxy(630, 200, "选图模式");
+			outtextxy(630, 270, "DIY模式");
+			outtextxy(660, 340, "返回");
+			switch (high)
+			{
+			case 130: settextcolor(RED); outtextxy(630, 130, "冒险模式"); break;
+			case 200:settextcolor(RED); outtextxy(630, 200, "选图模式"); break;
+			case 270:settextcolor(RED); outtextxy(630, 270, "DIY模式"); break;
+			case 340:settextcolor(RED); outtextxy(660, 340, "返回"); break;
+			}
+		}
+		if (judge == ENTER)
+			switch (high)
+			{
+			case 130: return 1;
+			case 200: if (choose_map() == 1)
+				return 1; break;
+			case 270: build_barrier(); return 1;
+			case 340: return 0;
+			}
+		if (judge == ESC)
+			return 0;
+
+	}
+}
+
+void load_address()
+{
+	int i, i0, j, k = 0, t = 0;
+	i0 = i = strlen("C:\\Users\\15716\\source\\repos\\Project9\\client\\");
+	j = strlen(filename);
+	for (i;i < (i0 + j + 4);i++)
+	{
+		if (i >= i0 + j)
+		{
+			address[i] = type[t];
+			t++;
+		}
+		else
+		{
+			address[i] = filename[k];
+			k++;
+		}
+	}
+}
+
+int client()
+{
+	int i, j;
+    j = i = 0;
+	char sign = 0;
+	char f[20] = { 0 }, p[20] = { 0 }, name[20] = {0}, password[20] = { 0 };
+	setfillcolor(YELLOW);
+	settextcolor(WHITE);
+	setbkmode(TRANSPARENT);
+	settextstyle(28, 0, _T("微软雅黑"));
+	putimage(500, 100, &gamechoose);
+	outtextxy(530, 170, "请创建用户名：(1-15位,不区分大小写)");
+	fillrectangle(600, 200, 800, 220);
+	outtextxy(600, 240, "请输入密码：(1-15位)");
+	setfillcolor(WHITE);
+	fillrectangle(600, 270, 800, 290);
+	outtextxy(670, 320, "确定");
+	settextcolor(BLACK);
+	while (1)
+	{
+		setfillcolor(YELLOW);
+		fillrectangle(600, 200, 800, 220);
+		outtextxy(600, 195, f);
+		while (1)
+		{
+			sign = _getch();
+			if (sign == ESC)
+				return 0;
+			if (sign == Tab)
+				break;
+			if (sign  == DEL )
+			{
+					if(j != 0)
+						name[--j] = ' ';
+					fillrectangle(600, 200, 800, 220);
+			}
+			else
+				if (j != 15)
+					name[j++] = sign;
+			sprintf_s(f, "%s", name);
+			outtextxy(600, 195, f);
+		}
+		setfillcolor(WHITE);
+		fillrectangle(600, 200, 800, 220);
+		outtextxy(600, 195, f);
+		setfillcolor(YELLOW);
+		fillrectangle(600, 270, 800, 290);
+		outtextxy(600, 270, p);
+		while (1)
+		{
+
+			sign = _getch();
+			if (sign == ESC)
+				return 0;
+			if (sign == Tab)
+				break;
+			if (sign == DEL)
+			{
+				if (i != 0)
+				{
+					password[--i] = ' ';
+					p[i] = ' ';
+				}
+				fillrectangle(600, 270, 800, 290);
+			}
+			else
+				if (i != 15)
+				{
+					password[i] = sign;
+					p[i] = '*';
+					i++;
+				}
+			outtextxy(600, 270, p);
+		}
+		setfillcolor(WHITE);
+		fillrectangle(600, 270, 800, 290);
+		outtextxy(600, 270, p);
+		settextcolor(RED);
+		while (1)
+		{
+			outtextxy(670, 320, "确定");
+			sign = _getch();
+			if (sign == ESC)
+				return 0;
+			if (sign == Tab)
+				break;
+			if (sign == ENTER)
+			{
+				load_address();
+				if (j == 0)
+				{
+					settextcolor(RED);
+					outtextxy(800, 195, "不能为空");
+				}
+				else if ( i == 0)
+				{
+					settextcolor(RED);
+					outtextxy(800, 265, "不能为空");
+				}
+				else if (fopen_s(&fp, address, "r") == 0)
+				{
+					setbkmode(OPAQUE);
+					outtextxy(600, 140, "用户名已存在");
+					setbkmode(TRANSPARENT);
+				}
+				else
+				{
+					setbkmode(OPAQUE);
+					settextcolor(WHITE);
+					outtextxy(600, 140, "用户创建成功！");
+					for (i = 0;i < 20;i++)
+						filename[i] = name[i];
+					load_address();
+					fopen_s(&fp, address, "w");
+					fputs(password, fp);
+					fputc('\n', fp);
+					fclose(fp);
+					Sleep(2000);
+					return 1;
+				}
+				break;
+			}
+		}
+		settextcolor(WHITE);
+		outtextxy(670, 320, "确定");
+		settextcolor(BLACK);
+	}
+}
+
+int client_menu()
+{
+	int judge, high, enter;
+	high = 30;
+	enter = 0;
+	putimage(0, 0, &cover);
+	putimage(10, 10, &frame);
+	putimage(10, 110, &frame);
+	putimage(10, 210, &frame);
+	putimage(10, 310, &frame);
+	putimage(10, 410, &frame);
+	setbkcolor(BLACK);
+	settextcolor(WHITE);
+	settextstyle(32, 0, _T("微软雅黑"));
+	outtextxy(60, 30, _T("新的游戏"));
+	outtextxy(60, 130, _T("继续游戏"));
+	outtextxy(60, 230, _T("游戏设置"));
+	outtextxy(60, 330, _T("排行榜"));
+	outtextxy(60, 430, _T("退出游戏"));
+	while (1)
+	{
+		judge = _getch();
+		if (judge == 224)
+		{
+			judge = _getch();
+			if (judge == UP)
+				if (high == 30)
+					high = 430;
+				else
+					high -= 100;
+			if (judge == DOWN)
+				if (high == 430)
+					high = 30;
+				else
+					high += 100;
+			settextcolor(WHITE);
+			outtextxy(60, 30, _T("新的游戏"));
+			outtextxy(60, 130, _T("继续游戏"));
+			outtextxy(60, 230, _T("游戏设置"));
+			outtextxy(60, 330, _T("排行榜"));
+			outtextxy(60, 430, _T("退出用户"));
+			switch (high)
+			{
+			case 30: settextcolor(RED); outtextxy(60, 30, _T("新的游戏")); break;
+			case 130:settextcolor(RED); outtextxy(60, 130, _T("继续游戏")); break;
+			case 230:settextcolor(RED); outtextxy(60, 230, _T("游戏设置")); break;
+			case 330:settextcolor(RED); outtextxy(60, 330, _T("排行榜")); break;
+			case 430:settextcolor(RED); outtextxy(60, 430, _T("退出用户")); break;
+			}
+		}
+		if (judge == ENTER)
+			switch (high)
+			{
+			case 30: enter = 1; break;
+			case 130: enter = 2; break;
+			case 230: enter = 3; break;
+			case 330: enter = 4; break;
+			case 430: enter = 5; break;
+			}
+		if (enter != 0)
+			break;
+	}
+	return enter;
+}
+
+int keepgame()
+{
+	int i, j, judge;
+	j = i = judge = 0;
+	FILE * fp;
+	char sign = 0;
+	char f[20] = { 0 }, p[20] = { 0 }, name[20] = { 0 }, password[20] = { 0 }, real_password[20] = { 0 };
+	setfillcolor(YELLOW);
+	settextcolor(WHITE);
+	setbkmode(TRANSPARENT);
+	settextstyle(28, 0, _T("微软雅黑"));
+	putimage(500, 100, &gamechoose);
+	outtextxy(600, 170, "请输入用户名：(1-15位)");
+	fillrectangle(600, 200, 800, 220);
+	outtextxy(600, 240, "请输入密码：(1-15位)");
+	setfillcolor(WHITE);
+	fillrectangle(600, 270, 800, 290);
+	outtextxy(670, 320, "确定");
+	settextcolor(BLACK);
+	while (1)
+	{
+		setfillcolor(YELLOW);
+		fillrectangle(600, 200, 800, 220);
+		outtextxy(600, 195, f);
+		while (1)
+		{
+			sign = _getch();
+			if (sign == ESC)
+				return 0;
+			if (sign == Tab)
+				break;
+			if (sign == DEL)
+			{
+				if (j != 0)
+					name[--j] = ' ';
+				fillrectangle(600, 200, 800, 220);
+			}
+			else
+				if (j != 15)
+					name[j++] = sign;
+			sprintf_s(f, "%s", name);
+			outtextxy(600, 195, f);
+		}
+		setfillcolor(WHITE);
+		fillrectangle(600, 200, 800, 220);
+		outtextxy(600, 195, f);
+		setfillcolor(YELLOW);
+		fillrectangle(600, 270, 800, 290);
+		outtextxy(600, 270, p);
+		while (1)
+		{
+
+			sign = _getch();
+			if (sign == ESC)
+				return 0;
+			if (sign == Tab)
+				break;
+			if (sign == DEL)
+			{
+				if (i != 0)
+				{
+					password[--i] = ' ';
+					p[i] = ' ';
+				}
+				fillrectangle(600, 270, 800, 290);
+			}
+			else
+				if (i != 15)
+				{
+					password[i] = sign;
+					p[i] = '*';
+					i++;
+				}
+			outtextxy(600, 270, p);
+		}
+		setfillcolor(WHITE);
+		fillrectangle(600, 270, 800, 290);
+		outtextxy(600, 270, p);
+		settextcolor(RED);
+		while (1)
+		{
+			outtextxy(670, 320, "确定");
+			sign = _getch();
+			if (sign == ESC)
+				return 0;
+			if (sign == Tab)
+				break;
+			if (sign == ENTER)
+			{
+				load_address();
+				if (j == 0)
+				{
+					settextcolor(RED);
+					outtextxy(800, 195, "不能为空");
+				}
+				else if (i == 0)
+				{
+					settextcolor(RED);
+					outtextxy(800, 265, "不能为空");
+				}
+				else if (fopen_s(&fp, address, "r") != 0)
+				{
+					setbkmode(OPAQUE);
+					outtextxy(600, 140, "用户名不存在");
+					setbkmode(TRANSPARENT);
+				}
+				else if (fopen_s(&fp, address, "r") == 0)
+				{
+				fgets(real_password, 20, fp);
+				judge = 1;
+				for (int t = 0; t < 20; t++)
+					if (password[t] != real_password[t])
+					{
+						setbkmode(OPAQUE);
+						outtextxy(600, 140, "密码输入错误");
+						setbkmode(TRANSPARENT);
+						judge = 0;
+						break;
+					}
+				}
+				if(judge == 1)
+				{
+					setbkmode(OPAQUE);
+					settextcolor(WHITE);
+					outtextxy(600, 140, "用户登录成功！");
+					for (i = 0;i < 20;i++)
+						filename[i] = name[i];
+					Sleep(2000);
+				}	
+				break;
+			}
+		}
+		if (judge != 0)
+			break;
+		settextcolor(WHITE);
+		outtextxy(670, 320, "确定");
+		settextcolor(BLACK);
+	}
+}	  
+
+void choose()
+{
+	int i, n, judge;
+	while (1)
+	{
+		judge = 1;
+		i = mainmenu();
+		switch (i)
+		{
+		case 1: while (client() != 0)
+		{
+			n = client_menu();
+			switch(n)
+			{
+			case 1: 
+			}
+		}break;
+		case 2: keepgame(); break;
+		case 3: RANK(); break;
+		case 4: judge = -1;break;
+		}
+		if (judge == -1)
+			break;
+	}
+}
+
+void LoadPic()
+{
+	loadimage(&rank0, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\rank.jpg"), 400, 550);
+	loadimage(&background, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\background.jpg"), length, width);
+	loadimage(&gamechoose, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\rank.jpg"), 400, 300);
+	loadimage(&cover, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\cover.jpg"), 1400, width);
+	loadimage(&pic, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\rank.jpg"), 700, 500);
+	loadimage(&snake, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\snake.jpg"), 30, 30);
+	loadimage(&frame, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\frame.jpg"), 200, 70);
+	loadimage(&setting, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\rank.jpg"), 400, 430);
+	loadimage(&snake_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\snake_.jpg"), 30, 30);
+	loadimage(&star, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\star.jpg"), 30, 30);
+	loadimage(&star_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\star_.jpg"), 30, 30);
+	loadimage(&body, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail.jpg"), 50, 50);
+	loadimage(&body_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail_.jpg"), 50, 50);
+	loadimage(&body1, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail1.jpg"), 50, 50);
+	loadimage(&body1_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail1_.jpg"), 50, 50);
+	loadimage(&body2, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail2.jpg"), 50, 50);
+	loadimage(&body2_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail2_.jpg"), 50, 50);
+	loadimage(&body3, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail3.jpg"), 50, 50);
+	loadimage(&body3_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail3_.jpg"), 50, 50);
+	loadimage(&body0, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail-.jpg"), 50, 50);
+	loadimage(&body0_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail-_.jpg"), 50, 50);
+	loadimage(&body01, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail1-.jpg"), 50, 50);
+	loadimage(&body01_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail1-_.jpg"), 50, 50);
+	loadimage(&body02, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail2-.jpg"), 50, 50);
+	loadimage(&body02_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail2-_.jpg"), 50, 50);
+	loadimage(&body03, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail3-.jpg"), 50, 50);
+	loadimage(&body03_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\tail3-_.jpg"), 50, 50);
+	loadimage(&stone, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\stone.jpg"), 25, 30);
+	loadimage(&stone_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\stone_.jpg"), 25, 30);
+	loadimage(&boom, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\boom.jpg"), 40, 40);
+	loadimage(&boom_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\boom_.jpg"), 40, 40);
+	loadimage(&TP, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\TP.jpg"), 40, 30);
+	loadimage(&TP_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\TP_.jpg"), 40, 30);
+	loadimage(&blackhole, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\poison.jpg"), 25, 25);
+	loadimage(&blackhole_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\poison_.jpg"), 25, 25);
+	loadimage(&barrier, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\barrier.jpg"), 200, 100);
+	loadimage(&barrier_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\barrier_.jpg"), 200, 100);
+	loadimage(&barrier1, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\barrier1.jpg"), 200, 100);
+	loadimage(&barrier1_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\barrier1_.jpg"), 200, 100);
+	loadimage(&barrier2, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\barrier2.jpg"), 100, 200);
+	loadimage(&barrier2_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\barrier2_.jpg"), 100, 200);
+	loadimage(&barrier3, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\barrier3.jpg"), 100, 200);
+	loadimage(&barrier3_, _T("C:\\Users\\15716\\source\\repos\\Project9\\picture\\barrier3_.jpg"), 100, 200);
+}
+
+
+// 主函数
+int main()
+{
+	initgraph(1400, width);
+	LoadPic();
+	//PlaySound("C:\\Users\\15716\\source\\repos\\Project10\\1.wav", NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
+	choose();
+	closegraph();
+}

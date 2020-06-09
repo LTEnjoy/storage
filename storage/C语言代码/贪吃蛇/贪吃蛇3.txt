@@ -1,0 +1,246 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <windows.h>
+#include <conio.h>
+#include <graphics.h>
+#define length  1000
+#define width 600
+#define size sizeof(struct snake)
+#define LEFT  75
+#define RIGHT 77
+#define UP    72
+#define DOWN  80
+#define ESC   27
+#define ENTER 13
+#define TIME  102
+#define space 32
+#define poison_NUM 10
+#define point 10
+#define r 10
+
+char map[][]
+struct snake * head, *tail, *food, *poison, *boom;
+struct snake * p1;                       //蛇移动所需指针 
+struct snake * p;						//辅助指针
+
+int snake_num = 5;                       //提供蛇的长度 
+int food_num = 5;
+
+struct snake       //定义蛇结构体
+{
+	int x;
+	int y;
+	struct snake * previous;
+	struct snake * next;
+};
+
+void graph()   //地图初始化
+{
+	initgraph(length, width);// 绘图环境初始化
+	setbkcolor(YELLOW);
+	cleardevice();
+	setfillcolor(BLUE);
+	fillrectangle(0, 0,length,3*r);
+	fillrectangle(0,width-3*r, length, width);
+	fillrectangle(0, 0, 3*r, width);
+	fillrectangle(length-3*r, 0, length, width);
+}
+
+void print_snake()
+{
+	p1 = tail;
+	for (int i = 0; i < 5; i++)
+	{
+		if (i == 4)
+			setfillcolor(RED);
+		else
+			setfillcolor(BLACK);
+		fillcircle(p1->x, p1->y, r);
+		p1 = p1->next;
+	}
+}
+
+void reprint_food()
+{
+	int i, j;
+	int judge = 0;
+	srand(time(0));
+	while (1)
+	{
+		p1 = tail;
+		p->x = (rand() % (length / 20 - 3) + 2) * 20;
+		p->y = (rand() % (width / 20 - 3) + 2) * 20;
+		for (j = 0;j < snake_num;j++)
+		{
+			if (p->x != p1->x || p->y != p1->y)
+				p1 = p1->next;
+			else
+			{
+				judge = 1;
+				break;
+			}
+		}
+		if (judge == 0)
+			break;
+	}
+
+	setfillcolor(BLUE);
+	fillcircle(p->x, p->y, r);
+	
+}
+
+void print_food()
+{
+	p = food;
+	for (int i = 0; i < food_num; i++)
+	{
+			setfillcolor(BLUE);
+		fillcircle(p->x, p->y, r);
+		p = p->previous;
+	}
+}
+
+void definition_food()       //定义食物链表 
+{
+	int i, j;
+	int judge;
+	srand(time(0));
+	p = food = (struct snake *) malloc(size);
+	p->previous = NULL;
+	for (i = 0;i < food_num;i++)
+	{
+		p1 = tail;
+		judge = 0;
+		while (1)
+		{
+			p->x = (rand() % (length/20 - 3) + 2) * 20;
+			p->y = (rand() % (width/20 - 3) + 2) * 20;
+			for (j = 0;j < snake_num;j++)
+			{
+				if (p->x != p1->x || p->y != p1->y)
+					p1 = p1->next;
+				else
+				{
+					judge = 1;
+					break;
+				}
+			}
+			if (judge == 0)
+				break;
+		}
+		if(i != food_num -1)
+		{
+			food = (struct snake *) malloc(size);
+			p->next = food;
+			food->previous = p;
+			food->next = NULL;
+			p = food;
+		}
+	}
+}
+
+void definition_snake()       //定义蛇链表 
+{
+	int i;
+	p = tail = head = (struct snake *) malloc(size);
+	
+	head->x = 500;
+	head->y = 300;
+	for (i = 1; i < snake_num; i++)
+	{
+		head = (struct snake *) malloc(size);
+		p->next = head;
+		head->previous = p;
+		head->next = NULL;
+		p = head;
+		head->x = 500 + 2 * r * i;
+		head->y = 300;
+	}
+	setfillcolor(BLACK);
+	setlinecolor(WHITE);
+	print_snake();
+}
+
+void move()                //让蛇移动 
+{
+	int key = RIGHT;
+	int judge;
+	int i, j;
+	while (1)
+	{
+		p1 = tail;
+		p = food;
+		clearcircle(p1->x, p1->y, r);
+		for (i = 0; i < snake_num - 1; i++)
+		{
+			p1->x = (p1->next)->x;
+			p1->y = (p1->next)->y;
+			p1 = p1->next;
+		}
+		switch (key)
+		{
+		case RIGHT:
+				head->x += 2*r;
+				break;
+		case UP:
+				head->y -= 2 * r;
+				break;
+		case LEFT:
+				head->x -= 2 * r;
+				break;
+		case DOWN:
+				head->y += 2 * r;
+				break;
+		}
+		while (p != NULL)
+		{
+			if (head->x != p->x || head->y != p->y)
+				p = p->previous;
+			else
+			{
+				reprint_food();
+				break;
+			}
+		}
+		setfillcolor(RED);
+		fillcircle(head->x, head->y, r);
+		setfillcolor(BLACK);
+		fillcircle((head->previous)->x, (head->previous)->y, r);
+		judge = _getch();
+		if (_kbhit() == 1)
+			if (judge == 224)
+				switch (judge = _getch())
+				{
+				case UP:if(key != DOWN)
+							key = judge;
+						break;
+				case RIGHT:if(key != LEFT)
+								key = judge;
+						   break;
+				case DOWN:if(key != UP)
+							 key = judge;
+						  break;
+				case LEFT:if(key != RIGHT)
+							 key = judge;
+						  break;
+				}
+	}
+
+}
+
+// 主函数
+int main()
+{
+	graph();
+	definition_snake();
+	print_snake();		//定义并打印蛇身
+	definition_food();
+	print_food();
+	move();
+
+	_getch();
+	closegraph();
+
+	
+}

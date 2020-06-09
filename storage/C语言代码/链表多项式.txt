@@ -1,0 +1,156 @@
+链表多项式节点：
+struct Node 
+{
+	int coefficient;  //节点的系数
+	int exponent;		//节点的幂
+	Node * next = NULL;		//指向下一个节点的指针
+};
+
+
+链表乘法（指数未进行排序的情况） 时间复杂度O(N^4)
+Node * Multiple(Node * p1, Node * p2)
+
+{
+	Node * now, *previous, *head; //now,previous用来判断和插入，head用来代表头结点
+	now = previous = head = (Node *)malloc(sizeof(Node));
+	head->coefficient = 0;
+	head->exponent = 0;
+	head->next = NULL;
+	for (;p1 != NULL;p1 = p1->next)			//双重for循环将p1 p2元素依次相乘
+	{
+		for (Node * temp = p2;temp != NULL;temp = temp->next)
+		{
+			Node * aNode = (Node *)malloc(sizeof(Node));		//创建新节点存储结果
+			aNode->next = NULL;
+			aNode->coefficient = p1->coefficient * temp->coefficient;
+			aNode->exponent = p1->exponent + temp->exponent;
+			if (aNode->exponent > head->exponent)				//通过比较将结果按顺序存储在新的链表中
+			{
+				aNode->next = head;
+				head = aNode;
+				continue;
+			}
+			else if (aNode->exponent == head->exponent)
+			{
+				head->coefficient += aNode->coefficient;
+				continue;
+			}
+			for (previous = head, now = head->next;now != NULL;)
+			{
+				if (aNode->exponent > now->exponent)
+				{
+					previous->next = aNode;
+					aNode->next = now;
+					break;
+				}
+				else if (aNode->exponent == now->exponent)
+				{
+					now->coefficient += aNode->coefficient;
+					break;
+				}
+				else
+				{
+					if (now->next == NULL)
+						now->next = aNode;
+					previous = previous->next;
+					now = now->next;
+				}
+			}
+		}
+	}
+	return head;
+}
+
+
+链表加法：（指数降序排列）
+void create(Node * newOne,Node * p)  		//加法里调用
+{
+	newOne->next = (Node *)malloc(sizeof(Node));
+	newOne = newOne->next;
+	newOne->coefficient = p->coefficient + p->coefficient;
+	newOne->exponent = p->exponent;
+	newOne->next = NULL;
+}
+
+
+Node * Plus(Node * p1, Node * p2)
+{
+	Node * now , * other, * head, * newOne;
+    now = (p1->exponent>=p2->exponent)?p1:p2;    //now代表最高次幂较大的链表
+	other = (p1->exponent >= p2->exponent) ? p2 : p1;	//other代表另一条链表
+	head = newOne = (Node *)malloc(sizeof(Node));  //head代表新的链表的头节点
+	while (now != NULL)
+	{
+		if (now->exponent > other->exponent)
+		{
+			create(newOne, now);		//创建一个新节点并进行连接
+			now = now->next;
+			continue;
+		}
+		else if(now->exponent == other->exponent)
+		{
+			create(newOne, now);
+			now = now->next;
+			other = other->next;
+			if (other == NULL)
+			{
+				for (;now != NULL;now = now->next)
+					create(newOne, now);
+				return head->next;
+			}
+			else
+				continue;
+		}
+		else
+		{
+			create(newOne, other);
+			other = other->next;
+			if (other == NULL)
+			{
+				for (;now != NULL;now = now->next)
+					create(newOne, now);
+				return head->next;
+			}
+		}
+	}
+	for (;other != NULL;other = other->next)
+		create(newOne, other);
+	return head->next;
+}
+
+
+链表乘法（指数降序排列）：时间复杂度为O（N^2）
+Node * Multiple0(Node * p1, Node * p2)
+{
+	Node * plus1, *plus2, *temp1,*temp2;
+	plus1 = (Node*)malloc(sizeof(Node));
+	plus2 = (Node*)malloc(sizeof(Node));
+	temp1 = plus1;
+	temp2 = plus2;
+	for (Node * p = p2;p->next != NULL;p = p->next)
+	{
+		temp1->next = (Node*)malloc(sizeof(Node));
+		temp2->next = (Node*)malloc(sizeof(Node));
+		temp1 = temp1->next;
+		temp2 = temp2->next;
+		temp1->next = NULL;
+		temp2->next = NULL;
+
+	}
+	for (temp1 = p2,temp2 = plus1; temp1 != NULL;temp1 = temp1->next,temp2 = temp2->next)
+	{
+		temp2->coefficient = p1->coefficient * temp1->coefficient;
+		temp2->exponent = p1->exponent + temp1->exponent;
+	}
+	for(p1 = p1->next;p1!=NULL;p1 = p1->next)
+	{	
+		for (temp1 = p2,temp2 = plus2;temp1 != NULL;temp1 = temp1->next, temp2 = temp2->next)
+		{
+			temp2->coefficient = p1->coefficient * temp1->coefficient;
+			temp2->exponent = p1->exponent + temp1->exponent;
+		}
+		plus1 = Plus(plus1, plus2);
+	}
+	return plus1;
+
+}

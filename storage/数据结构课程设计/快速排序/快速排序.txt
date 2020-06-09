@@ -1,0 +1,62 @@
+void exchange(int a[], int i, int j)
+{
+	int temp;
+	temp = a[i];
+	a[i] = a[j];
+	a[j] = temp;
+}
+
+int median(int a[], int head, int tail) //三值取中
+{
+	int center = (head + tail) / 2;
+	if (a[head] > a[center])
+		exchange(a, head, center);
+	if(a[head] > a[tail])
+		exchange(a, head, tail);
+	if (a[center] > a[tail])
+		exchange(a, center, tail);
+	exchange(a, center, tail-1);
+	return a[tail-1];
+}
+
+void insertionSort(int a[], int n)
+{
+	int i, j, key;
+
+	for (i = 1;i < n;i++)
+	{
+		key = a[i];
+		for (j = i - 1;j >= 0 && a[j] > key;j--)
+		{
+			a[j + 1] = a[j];
+			a[j] = key;
+		}
+	}
+}
+
+
+void quickSort(int a[],int head, int tail)
+{
+	int i, j; //两个指针
+	if (head + 2 <= tail)
+	{
+		int pivot = median(a, head, tail);  //三值取中获得枢纽元
+		i = head, j = tail - 1;
+		while (true)
+		{
+			while (a[++i] < pivot)
+				;
+			while (a[--j] > pivot)
+				;
+			if (i < j)
+				exchange(a, i, j);
+			else
+				break;
+		}
+		exchange(a, i, tail - 1);
+		quickSort(a, head, i - 1);
+		quickSort(a, i + 1, tail);
+	}
+	else 
+		insertionSort(a + head, tail - head + 1);
+}

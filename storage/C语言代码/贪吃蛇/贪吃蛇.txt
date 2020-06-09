@@ -1,0 +1,1336 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <windows.h>
+#include <conio.h>
+#define long  111
+#define width 40
+#define length   5
+#define size sizeof(struct snake)
+#define LEFT  75
+#define RIGHT 77
+#define UP    72
+#define DOWN  80
+#define ESC   27
+#define ENTER 13
+#define TIME  102
+#define space 32
+#define poison_NUM 10
+#define point 10
+
+struct snake * head, * tail, * p, * food, *poison, *boom;
+struct snake * p2, *p3, *p4, *p5;          	 //毒草所需指针 
+struct snake * p1;                       //蛇移动所需指针 
+int key = 0;                         	 //键盘输入指令参数 
+int judge;
+int poison_num = 10;
+int choose = 0;                       	 //键盘输入判断参数 
+int times =102;                          //蛇移动速度 
+int n;                            	 	 //记录游戏得分 
+int a;                              	 //供生成食物和地雷以及毒草时使用
+int snake_num = 5;                       //提供蛇的长度 
+int circle; 						     //控制毒草出现的时间 
+
+
+void gotoxy(int x, int y) //定义光标
+{
+    COORD pos;
+	HANDLE hOutput;
+	pos.X = x;
+	pos.Y = y;
+	hOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleCursorPosition(hOutput, pos);
+}
+
+void HideCursor() //隐藏光标 
+{
+CONSOLE_CURSOR_INFO cursor_info = {1, 0};
+SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursor_info);
+}
+
+void graph()   //地图初始化
+{
+    color(11);
+	int x, y;
+    for(y=0;y<width;y++)
+       {
+        gotoxy(0, y);
+        printf("■");
+   		gotoxy(long-1, y);
+		printf("■");
+   	   }
+
+	for(x=0;x<long;x++)
+   	   {
+   		gotoxy(x, 0);
+   		printf("■");
+   		gotoxy(x, width-1);
+   		printf("■");
+   		x++; 
+   	   }
+   	color(15); 
+}
+
+struct snake       //定义蛇结构体
+{
+    char x;
+    char y;
+    struct snake * previous;
+    struct snake * next;
+};
+
+void definition_snake()       //定义蛇链表 
+{
+	int i;
+	p = tail = head = (struct snake *) malloc(size);
+	head->x = 56;
+	head->y = 20;
+	for(i=1; i<length; i++)
+	{
+		head = (struct snake *) malloc(size);
+		p->next = head;
+		head->previous = p;
+		head->next = NULL;
+		p = head;
+		head->x = 56 + 2*i;
+		head->y = 20;
+	}
+
+}
+
+void create_poison()          //打印出单个毒草 
+{   
+    p2 = (struct snake *) malloc(size);
+	while(1)
+	{
+		a = 1;
+		do
+		{ 
+	  	 p3->x = rand()%106+3;
+		}while( (p3->x)%2 !=0);
+		p3->y = rand()%38+1;
+		if( (p3->x == food->x && p3->y == food->y) || (p3->x == boom->x && p3->y == boom->y))
+		a = 0; 
+		p1 = tail; 
+		while(p1->next != NULL)
+		{
+	        if(p3->x == p1->x && p3->y == p1->y)
+		 	{
+		 		a = 0;
+		 		break;
+		 	}
+			p1 = p1->next;
+		}
+		if(a = 1)
+		break;
+	}
+	p3->next = p2;   
+	gotoxy(p3->x, p3->y);
+	color(12);
+	printf("●");
+	color(15);
+	p2->previous = p3;
+	p3 = p2;                                                                          
+	p2->next = NULL;
+}
+
+
+void definition_poison()    //定义并一口气打印出所有毒草 
+{
+	int i;
+	p4 = p3 = p2 = poison = (struct snake *) malloc(size);
+	for(i=0; i<poison_num; i++)
+	{
+	 create_poison();
+	}
+	 
+}
+
+void poison_delete()                //使所有毒草消失 
+{   
+    poison = p4; 
+	while(poison->next != NULL)
+	{
+		gotoxy(poison->x, poison->y);
+		printf(" ");
+		poison = poison->next;
+		free(poison->previous);
+	}
+	
+}
+
+void create_food()                //创建出一个食物 
+{
+	food = (struct snake *) malloc(size);
+	srand(time(0));
+	while(1)
+	{
+	   	poison = p4;
+		a = 1;
+		do
+		{
+	  		food->x = rand()%106+3;
+		}	while( (food->x)%2 !=0);
+		food->y = rand()%38+1;
+		do
+		{
+		  if(food->x == poison->x && food->y == poison->y)
+		      a = 0;
+		  else poison = poison->next;
+		  if(a == 0)
+		    break;
+		}while(poison->next != NULL);
+		p1 = tail; 
+	    do
+		{
+	        if(food->x == p1->x && food->y == p1->y)
+		 	{
+		 		a = 0;
+		 		break;
+		 	}
+			p1 = p1->next;
+		}while(p1->next != NULL);
+		if(food->x == boom->x && food->y == boom->y)
+		   a = 0;
+		if(a == 1)
+		   break;
+	}
+	gotoxy(food->x,food->y);
+	printf("●");
+}
+
+void print_food()               //游戏开始时第一次打印食物 
+{
+	food = (struct snake *) malloc(size);
+	srand(time(0));
+	while(1)
+	{
+		a = 1;
+		do
+		{
+	  		food->x = rand()%106+3;
+		}	while( (food->x)%2 !=0);
+		food->y = rand()%38+1;
+		p1 = tail; 
+	    do
+		{
+	        if(food->x == p1->x && food->y == p1->y)
+		 	{
+		 		a = 0;
+		 		break;
+		 	}
+			p1 = p1->next;
+		}while(p1->next != NULL);
+		if(a == 1)
+		   break;
+	}
+	gotoxy(food->x,food->y);
+	printf("●");
+}
+
+void print_boom()                //游戏开始时第一次打印地雷 
+{
+	boom = (struct snake *) malloc(size);    
+	srand(time(0));
+	while(1)
+	{
+		a = 1;
+		do
+		{
+	  		boom->x = rand()%106+3;
+		}	while( (boom->x)%2 !=0);
+		boom->y = rand()%38+1;
+		p1 = tail; 
+		while(p1->next != NULL)
+		{
+	        if(boom->x == p1->x && boom->y == p1->y)
+		 	{
+		 		a = 0;
+		 		break;
+		 	}
+			p1 = p1->next;
+		}
+		if(boom->x == food->x && boom->y == food->y)
+		   a = 0;
+		if(a == 1)
+		   break;
+	}
+	gotoxy(boom->x,boom->y);
+	color(33);
+	printf("¤");
+	color(15);
+}
+
+void create_boom()               //游戏开始后打印地雷 
+{
+	boom = (struct snake *) malloc(size);    
+	srand(time(0));
+	while(1)
+	{
+	   	poison = p4;
+		a = 1;
+		do
+		{
+	  		boom->x = rand()%106+3;
+		}	while( (boom->x)%2 !=0);
+		boom->y = rand()%38+1;
+		do
+		{
+		  if(boom->x == poison->x && boom->y == poison->y)
+		      a = 0;
+		  else poison = poison->next;
+		  if(a == 0)
+		    break;
+		}while(poison->next != NULL);
+		p1 = tail; 
+		while(p1->next != NULL)
+		{
+	        if(boom->x == p1->x && boom->y == p1->y)
+		 	{
+		 		a = 0;
+		 		break;
+		 	}
+			p1 = p1->next;
+		}
+		if(boom->x == food->x && boom->y == food->y)
+		   a = 0;
+		if(a == 1)
+		   break;
+	}
+	gotoxy(boom->x,boom->y);
+	color(33);
+	printf("¤");
+	color(15);
+}
+
+void choose_4()
+{
+	gotoxy(40,25);
+	printf("************");
+	gotoxy(40,26);
+	printf("* 重新开始 *");
+	gotoxy(40,27);
+	printf("************");
+} 
+
+void choose_5()
+{
+	gotoxy(58,25);
+	printf("************");
+	gotoxy(58,26);
+	printf("* 返回菜单 *");
+	gotoxy(58,27);
+	printf("************");
+}
+ 
+void print_snake()           //打印初始蛇 
+{
+	p1 = tail; 
+	do
+	{
+		gotoxy(p1->x, p1->y);
+		printf("■");
+		p1 = p1->next;
+	}while (p1!= NULL);
+}
+
+void GraphDelete()
+{
+  int a, b;
+  for(a=1; a<width-1; a++)
+   {
+   	  gotoxy(2,a);
+	  for(b=2; b<long-1; b++)
+          printf(" ");
+   }
+}
+ 
+ void move()                //让蛇移动 
+{   
+	 circle++;
+	 if(circle == 100)
+	 poison_delete();
+	 if(circle == 150)
+     {
+		 definition_poison();
+		 circle = 0;	 
+	 }
+	 if (key == UP) 
+	{	
+		gotoxy(tail->x, tail->y);
+		head = (struct snake *) malloc(size);
+		head->x = p->x;
+		head->y = p->y - 1;
+		p->next = head;
+		head->previous = p;
+		head->next = NULL;
+		p = head;
+		if(head->y == 1)
+		key = 1;
+		p1 = tail; 
+	    do
+		{
+	        if(head->x == p1->x && head->y == p1->y)
+		 	{
+		 	   key = 1;
+		 	   break;	
+		 	}
+			p1 = p1->next;
+		}while(p1->next != NULL);
+		if(head->x == food->x && head->y == food->y)
+	      {
+	       snake_num++; 
+		   create_food();
+	       n += point;
+	       gotoxy(115,8);
+	       printf("               ");
+	       gotoxy(115,8);
+           printf("您的得分：%d", n); 
+	      } 
+		else
+		    {
+		    tail = tail->next;
+			free(tail->previous);
+			printf(" ");
+	    	}
+	    if(circle <100)
+		{
+			poison = p4;
+			do
+			{
+	    		if(head->x == poison->x && head->y == poison->y)
+	    	    {
+	    	        if(snake_num == 1)
+					{
+						judge = 1;
+						n -= point*0.5;
+	        			gotoxy(115,8);
+	        			printf("               ");
+						gotoxy(115,8);
+            			printf("您的得分：%d", n); 
+            		}
+					else	
+					{	
+						snake_num--;
+						create_poison();
+						p5 = poison->previous;
+						p5->next = poison->next;
+						free(poison); 
+	    				gotoxy(tail->x,tail->y);
+						tail = tail->next;
+						free(tail->previous);
+						printf(" ");
+						n -= point*0.5;
+	        			gotoxy(115,8);
+	        			printf("               ");
+						gotoxy(115,8);
+            			printf("您的得分：%d", n); 
+						break;
+		    		}
+		    	}
+		    	poison = poison->next;
+	    	}while(poison->next != NULL);
+		}
+	    if(head->x == boom->x && head->y == boom->y)
+	    {
+	    	if(snake_num == 1)
+			 {
+			    n -= point*2;
+	            gotoxy(115,8);
+	        	printf("               ");
+				gotoxy(115,8);
+            	printf("您的得分：%d", n); 
+				judge = 1;
+			 }
+			else
+			{
+				int i = 0;
+			    n -= point*2;
+	            gotoxy(115,8);
+	        	printf("               ");
+				gotoxy(115,8);
+            	printf("您的得分：%d", n); 
+ 				if(snake_num%2 != 0)
+				   {
+				    snake_num++;
+					i = 1;
+				   }
+				for(i; i<snake_num*0.5; i++)
+	    		{
+	    			gotoxy(tail->x,tail->y);
+					tail = tail->next;
+					free(tail->previous);
+					printf(" ");
+				}
+					snake_num *= 0.5;
+					create_boom();
+			}
+	    }
+    	gotoxy(head->x, head->y);
+    	printf("■");
+		Sleep(times);
+		if(kbhit() == 1 && judge != 1)
+     	{
+     		 judge = getch();
+     		 if(judge == 32)
+     		   {
+     		    judge = key;
+     		    key = 0;
+     		   }
+     		 if(judge == 27)
+     		   key = 1;
+    		 if(judge == 224)
+			    judge = getch(); 
+	         if(judge == RIGHT)
+			   {
+			     if(head->x == long-3)
+			         key = 1;
+			     else key =RIGHT;
+			   }
+			 if(judge == LEFT)
+			   {
+			     if(head->x == 2)
+			         key = 1;
+			     else key = LEFT;
+			   }   
+		
+	 	} 
+    }
+    if (key == LEFT) 
+    {
+   	 	gotoxy(tail->x, tail->y);
+		head = (struct snake *) malloc(size);
+		head->x = p->x - 2;
+		head->y = p->y;
+		p->next = head;
+		head->previous = p;
+		head->next = NULL;
+		p = head;
+		if(head->x == 2) 
+		key = 1;
+		p1 = tail; 
+	    do
+		{
+	        if(head->x == p1->x && head->y == p1->y)
+		 	{
+		 	   key = 1;
+		 	   break;	
+		 	}
+			p1 = p1->next;
+		}while(p1->next != NULL);
+		if(head->x == food->x && head->y == food->y)
+	      {
+	       snake_num++;
+		   create_food();
+	       n += point;
+	       gotoxy(115,8);
+	       printf("               ");
+		   gotoxy(115,8);
+           printf("您的得分：%d", n); 
+	      } 
+		else
+		    {
+		    tail = tail->next;
+			free(tail->previous);
+			printf(" ");
+	    	}
+	    if(circle <100)
+		{
+			poison = p4;
+			do
+			{
+	    		if(head->x == poison->x && head->y == poison->y)
+	    	    {
+	    	        if(snake_num == 1)
+					{
+						judge = 1;
+						n -= point*0.5;
+	        			gotoxy(115,8);
+	        			printf("               ");
+						gotoxy(115,8);
+            			printf("您的得分：%d", n); 
+            		}
+					else	
+					{	
+						snake_num--;
+						create_poison();
+						p5 = poison->previous;
+						p5->next = poison->next;
+						free(poison);
+	    				gotoxy(tail->x,tail->y);
+						tail = tail->next;
+						free(tail->previous);
+						printf(" ");
+						n -= point*0.5;
+	        			gotoxy(115,8);
+	        			printf("               ");
+						gotoxy(115,8);
+            			printf("您的得分：%d", n); 
+						break;
+		    		}
+		    	}
+		    	poison = poison->next;
+	    	}while(poison->next != NULL);
+		}
+	    if(head->x == boom->x && head->y == boom->y)
+	    {
+	    	if(snake_num == 1)
+			 {
+			    n -= point*2;
+	            gotoxy(115,8);
+	        	printf("               ");
+				gotoxy(115,8);
+            	printf("您的得分：%d", n); 
+				judge = 1;
+			 }
+			else
+			{
+				int i = 0;
+			    n -= point*2;
+	            gotoxy(115,8);
+	        	printf("               ");
+				gotoxy(115,8);
+            	printf("您的得分：%d", n); 
+ 				if(snake_num%2 != 0)
+				   {
+				    snake_num++;
+					i = 1;
+				   }
+				for(i; i<snake_num*0.5; i++)
+	    		{
+	    			gotoxy(tail->x,tail->y);
+					tail = tail->next;
+					free(tail->previous);
+					printf(" ");
+				}
+					snake_num *= 0.5;
+					create_boom();
+			}
+	    }
+		gotoxy(head->x, head->y);
+		printf("■");
+		Sleep(times);
+    	if(kbhit() == 1 && judge != 1)
+     	{
+     		 judge = getch();
+     		 if(judge == 32)
+     		   {
+     		    judge = key;
+     		    key = 0;
+     		   }
+     		 if(judge == 27)
+     		    key = 1;
+    		 if(judge == 224)
+			    judge = getch(); 
+			  if(judge == UP)
+			   {
+			     if(head->y == 1)
+			         key = 1;
+			     else key = UP;
+			   }
+			 if(judge == DOWN)
+			   {
+			     if(head->y == width-2)
+			         key = 1;
+			     else key = DOWN;
+			   }  
+	 	} 
+   		 
+	}
+	if (key == RIGHT) 
+    {
+   	 	gotoxy(tail->x, tail->y);
+		head = (struct snake *) malloc(size);
+		head->x = p->x + 2;
+		head->y = p->y;
+		p->next = head;
+		head->previous = p;
+		head->next = NULL;
+		p = head;
+		if(head->x == long-3) 
+		key = 1;
+		p1 = tail; 
+	    do
+		{
+	        if(head->x == p1->x && head->y == p1->y)
+		 	{
+		 	   key = 1;
+		 	   break;	
+		 	}
+			p1 = p1->next;
+		}while(p1->next != NULL);
+		if(head->x == food->x && head->y == food->y)
+	       {
+	       snake_num++;
+	       create_food();
+	       n += point;
+	       gotoxy(115,8);
+	       printf("               ");
+		   gotoxy(115,8);
+           printf("您的得分：%d", n); 
+	       } 
+		else
+		    {
+		    tail = tail->next;
+			free(tail->previous);
+			printf(" ");
+	    	}
+	    if(circle <100)
+		{
+			poison = p4;
+			do
+			{
+	    		if(head->x == poison->x && head->y == poison->y)
+	    	    {if(snake_num == 1)
+					{
+						judge= 1;
+						n -= point*0.5;
+	        			gotoxy(115,8);
+	        			printf("               ");
+						gotoxy(115,8);
+            			printf("您的得分：%d", n); 
+            		}
+					else	
+					{	
+						snake_num--;
+						create_poison();
+						p5 = poison->previous;
+						p5->next = poison->next;
+						free(poison);
+	    				gotoxy(tail->x,tail->y);
+						tail = tail->next;
+						free(tail->previous);
+						printf(" ");
+						n -= point*0.5;
+	        			gotoxy(115,8);
+	        			printf("               ");
+						gotoxy(115,8);
+            			printf("您的得分：%d", n); 
+						break;
+		    		}
+		    	}
+		    	poison = poison->next;
+	    	}while(poison->next != NULL);
+		}
+	    if(head->x == boom->x && head->y == boom->y)
+	    {
+	    	if(snake_num == 1)
+			 {
+			    n -= point*2;
+	            gotoxy(115,8);
+	        	printf("               ");
+				gotoxy(115,8);
+            	printf("您的得分：%d", n); 
+				judge = 1;
+			 }
+			else
+			{
+				int i = 0;
+			    n -= point*2;
+	            gotoxy(115,8);
+	        	printf("               ");
+				gotoxy(115,8);
+            	printf("您的得分：%d", n); 
+ 				if(snake_num%2 != 0)
+				   {
+				    snake_num++;
+					i = 1;
+				   }
+				for(i; i<snake_num*0.5; i++)
+	    		{
+	    			gotoxy(tail->x,tail->y);
+					tail = tail->next;
+					free(tail->previous);
+					printf(" ");
+				}
+					snake_num *= 0.5;
+					create_boom();
+			}
+	    }	
+		gotoxy(head->x, head->y);
+		printf("■");
+    	Sleep(times);
+    	if(kbhit() == 1 && judge != 1)
+     	{
+     		 judge = getch();
+     		 if(judge == 32)
+     		   {
+     		    judge = key;
+     		    key = 0;
+     		   }
+     		 if(judge == 27)
+     		    key = 1;
+    		 if(judge == 224)
+			    judge = getch(); 
+			 if(judge == UP)
+			   {
+			     if(head->y == 1)
+			         key = 1;
+			     else key = UP;
+			   }
+			 if(judge == DOWN)
+			   {
+			     if(head->y == width-2)
+			         key = 1;
+			     else key = DOWN;
+			   }  
+	 	}  		 
+	}
+	if (key == DOWN) 
+    {
+   	 	gotoxy(tail->x, tail->y);
+		head = (struct snake *) malloc(size);
+		head->x = p->x;
+		head->y = p->y + 1;
+		p->next = head;
+		head->previous = p;
+		head->next = NULL;
+		p = head;
+		if(head->y == width-2) 
+		key = 1;
+		p1 = tail; 
+	    do
+		{
+	        if(head->x == p1->x && head->y == p1->y)
+		 	{
+		 	   key = 1;
+		 	   break;	
+		 	}
+			p1 = p1->next;
+		}while(p1->next != NULL);
+	 	if(head->x == food->x && head->y == food->y)
+	       {
+	        snake_num++;
+			create_food();
+	        n += point;
+	       	gotoxy(115,8);
+	        printf("               "); 
+			gotoxy(115,8);
+            printf("您的得分：%d", n); 
+           }
+		else
+		    {
+		    tail = tail->next;
+			free(tail->previous);
+			printf(" ");
+	    	}
+	    if(circle <100)
+		{
+			poison = p4;
+			do
+			{
+	    		if(head->x == poison->x && head->y == poison->y)
+	    	    {
+	    	        if(snake_num == 1)
+					{
+						judge = 1;
+						n -= point*0.5;
+	        			gotoxy(115,8);
+	        			printf("               ");
+						gotoxy(115,8);
+            			printf("您的得分：%d", n); 
+            		}
+					else	
+					{	
+						snake_num--;
+						create_poison();
+						p5 = poison->previous;
+						p5->next = poison->next;
+						free(poison);
+	    				gotoxy(tail->x,tail->y);
+						tail = tail->next;
+						free(tail->previous);
+						printf(" ");
+						n -= point*0.5;
+	        			gotoxy(115,8);
+	        			printf("               ");
+						gotoxy(115,8);
+            			printf("您的得分：%d", n); 
+						break;
+		    		}
+		    	}
+		    	poison = poison->next;
+	    	}while(poison->next != NULL);
+		}
+	    if(head->x == boom->x && head->y == boom->y)
+	    {
+	    	if(snake_num == 1)
+			 {
+			    n -= point*2;
+	            gotoxy(115,8);
+	        	printf("               ");
+				gotoxy(115,8);
+            	printf("您的得分：%d", n); 
+				judge = 1;
+			 }
+			else
+			{
+				int i = 0;
+			    n -= point*2;
+	            gotoxy(115,8);
+	        	printf("               ");
+				gotoxy(115,8);
+            	printf("您的得分：%d", n); 
+ 				if(snake_num%2 != 0)
+				   {
+				    snake_num++;
+					i = 1;
+				   }
+				for(i; i<snake_num*0.5; i++)
+	    		{
+	    			gotoxy(tail->x,tail->y);
+					tail = tail->next;
+					free(tail->previous);
+					printf(" ");
+				}
+					snake_num *= 0.5;
+					create_boom();
+			}
+		}
+		gotoxy(head->x, head->y);
+		printf("■");
+    	Sleep(times);
+    	if(kbhit() == 1 && judge != 1)
+     	{
+     		 judge = getch();
+     		 if(judge == 32)
+     		   {
+     		    judge = key;
+     		    key = 0;
+     		   }
+     		 if(judge == 27)
+     		    key = 1;  
+    		 if(judge == 224)
+			    judge = getch(); 
+		     if(judge == RIGHT)
+			   {
+			     if(head->x == long-3)
+			         key = 1;
+			     else key =RIGHT;
+			   }
+			 if(judge == LEFT)
+			   {
+			     if(head->x == 2)
+			         key = 1;
+			     else key = LEFT;
+			   }  
+	 	} 		
+	}
+	if(snake_num == 0)
+	    key = 1;
+}
+
+void game_over()     
+{
+    gotoxy(45,20);
+	printf("********************");
+	gotoxy(45,21);
+	printf("*     游戏结束     *");
+	gotoxy(45,22);
+	printf("* 您的得分：%d", n);
+	gotoxy(64,22);
+	printf("*");
+	gotoxy(45,23);
+	printf("********************");
+	choose = 0;
+	while(1)
+	{
+		if(choose == 0)
+		{ 
+		  if(kbhit() == 1)
+     		{
+     		 judge = getch();
+    		 if(judge == 224)
+			    judge = getch(); 
+			 if(judge == RIGHT)
+			    choose = 5;
+			 if(judge == LEFT)
+			    choose = 5;
+	 		} 
+		  choose_4();
+    	  choose_5();
+      	}
+		if(choose == 4)
+		{ 
+		  if(kbhit() == 1)
+     		{
+     		 judge = getch();
+    		 if(judge == 224)
+			    judge = getch(); 
+			 if(judge == RIGHT)
+			    choose = 5;
+			 if(judge == LEFT)
+			    choose = 5;
+	 		} 
+		  color(12);
+		  choose_4();
+		  color(15);
+    	  choose_5();
+    	  if(kbhit() == 1 && (judge = getch()) == 13)
+    	  {
+    	  	key = -1;
+    	    break;
+    	  }
+      	}
+		if(choose == 5)
+		{ 
+		  if(kbhit() == 1)
+     		{
+     		 judge = getch();
+    		 if(judge == 224)
+			    judge = getch(); 
+			 if(judge == RIGHT)
+			    choose = 4;
+			 if(judge == LEFT)
+			    choose = 4;
+	 		} 
+		  color(12);
+		  choose_5();
+    	  color(15);
+		  choose_4();
+		  if(kbhit() == 1 && (judge = getch()) == 13)
+    	  {
+    	  	choose = 0;
+			key = -2;
+			gotoxy(115,8);
+	        printf("               ");
+    	    break;
+    	  }
+      	}
+	} 
+	if(snake_num == 0)
+        key = 1;
+}
+    
+void NewGame()
+{
+   while(1) 
+  { 
+    snake_num = 5;
+    circle = 0;
+	GraphDelete(); 
+	graph();
+	definition_snake();
+    print_snake();
+  	n = 0;                    //初始化玩家得分 
+	key = RIGHT;
+	print_food();
+	print_boom();
+	definition_poison();
+  	gotoxy(115,8);
+    printf("               "); 
+  	gotoxy(115,8);
+  	printf("您的得分：%d", n); 
+  	while(1)
+  	{  
+		while(key == 0)
+     	{
+        	int a = getch();
+        	if(a == 32)
+        	{
+         	key = judge;
+		 	break;
+	    	}
+	    	if(a == 27)
+	    	   key = 1;
+    	}
+     	while(key == 1 || judge == 1)
+     	{
+     		game_over();	
+     	}
+	    if(key == -1 || key == -2)
+	 	   break;
+	 	move();    
+ 	}
+ 	 if(key == -2)
+     break;
+  }	
+}
+
+int color(int c)
+{
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), c);        //更改文字颜色
+	return 0;
+}
+
+void choose_1()                                    //游戏界面选项1
+{
+	gotoxy(45,20);
+	printf("********************");
+	gotoxy(45,21);
+	printf("*    开始新游戏    *");
+	gotoxy(45,22);
+	printf("********************");
+} 
+
+void choose_2()                                    //游戏界面选项2                                  
+{
+	gotoxy(45,25);
+	printf("********************");
+	gotoxy(45,26);
+    printf("*     选择难度     *");
+    gotoxy(45,27);
+	printf("********************");
+}
+
+void choose_3()                                    //游戏界面选项3
+{
+	gotoxy(45,30);
+	printf("********************");
+	gotoxy(45,31);
+	printf("*     退出游戏     *");
+	gotoxy(45,32);
+	printf("********************");
+}
+
+void choose_6()                                    
+{
+	gotoxy(45,20);
+	printf("********************");
+	gotoxy(45,21);
+	printf("*     轻松惬意     *");
+	gotoxy(45,22);
+	printf("********************");
+} 
+
+void choose_7()                                    
+{
+	gotoxy(45,25);
+	printf("********************");
+	gotoxy(45,26);
+	printf("*     头皮发麻     *");
+	gotoxy(45,27);
+	printf("********************");
+} 
+
+void choose_8()                                    
+{
+	gotoxy(45,30);
+	printf("********************");
+	gotoxy(45,31);
+	printf("*     生不如死     *");
+	gotoxy(45,32);
+	printf("********************");
+} 
+
+void choose_difficulty()
+{
+	choose = 0; 
+	GraphDelete(); 
+	gotoxy(50,15);
+	printf("聪明的小蛇"); 
+	while(1)
+	{
+		if(choose == 0)
+		{ 
+		  if(kbhit() == 1)
+     		{
+     		 judge = getch();
+    		 if(judge == 224)
+			    judge = getch(); 
+			 if(judge == UP)
+			    choose = 3;
+			 if(judge == DOWN)
+			    choose = 2;
+	 		} 
+		  choose_6();
+		  choose_7();
+    	  choose_8();
+      	}
+		if(choose == 1)
+		{ 
+		  if(kbhit() == 1)
+     		{
+     		 judge = getch();
+    		 if(judge == 224)
+			    judge = getch(); 
+			 if(judge == UP)
+			    choose = 3;
+			 if(judge == DOWN)
+			    choose = 2;
+	 		} 
+		  color(12);
+		  choose_6();
+    	  color(15);
+		  choose_7();
+    	  choose_8();
+    	  if(kbhit() == 1 && (judge = getch()) == 13)
+    	  {
+		    times = TIME;
+		    poison_num = poison_NUM;
+		    break;
+	      }
+      	}
+      	if(choose == 2)
+		{ 
+		  if(kbhit() == 1)
+     		{
+     		 judge = getch();
+    		 if(judge == 224)
+			    judge = getch(); 
+			 if(judge == UP)
+			    choose = 1;
+			 if(judge == DOWN)
+			    choose = 3;
+	 		} 
+		  color(12);
+		  choose_7();
+    	  color(15);
+		  choose_6();
+    	  choose_8();
+    	  if(kbhit() == 1 && (judge = getch()) == 13)
+    	  {
+		   times = TIME*2/3;
+		   poison_num = 2*poison_NUM;
+		   break;
+	      }
+      	}
+      	if(choose == 3)
+		{ 
+		  if(kbhit() == 1)
+     		{
+     		 judge = getch();
+    		 if(judge == 224)
+			    judge = getch(); 
+			 if(judge == UP)
+			    choose = 2;
+			 if(judge == DOWN)
+			    choose = 1;
+	 		} 
+		  color(12);
+		  choose_8();
+    	  color(15);
+		  choose_6();
+    	  choose_7();
+    	  if(kbhit() == 1 && (judge = getch()) == 13)
+    	  {
+		   times = TIME/3;
+		   poison_num = 3*poison_NUM;
+		   break; 
+	      }
+      	}
+    }
+
+}
+
+void game_start()                                    //新游戏选项 
+{
+	color(15);
+	gotoxy(50,15);
+	printf("聪明的小蛇"); 
+	gotoxy(115,15);
+	printf("游戏规则："); 
+	gotoxy(115,16);
+	printf("方向键控制蛇的行动");
+    gotoxy(115,17);
+    printf("回车键：确定   ESC键：结束游戏");
+    gotoxy(115,18);
+    printf("空格键：暂停（再按一次恢复)");
+    gotoxy(115,23); 
+    printf("●代表食物，使蛇增长一节");
+    gotoxy(115,25); 
+    color(12); 
+    printf("●");
+	color(15); 
+	printf("代表毒草，使蛇缩短一节");
+    gotoxy(115,27);
+	color(33); 
+    printf("¤");
+    color(15);
+	printf("代表地雷，使蛇缩短一半");
+	while(1)
+	{
+		if(choose == 0)
+		{ 
+		  if(kbhit() == 1)
+     		{
+     		 judge = getch();
+    		 if(judge == 224)
+			    judge = getch(); 
+			 if(judge == UP)
+			    choose = 3;
+			 if(judge == DOWN)
+			    choose = 2;
+	 		} 
+		  choose_1();
+		  choose_2();
+    	  choose_3();
+      	}
+		if(choose == 1)
+		{ 
+		  if(kbhit() == 1)
+     		{
+     		 judge = getch();
+    		 if(judge == 224)
+			    judge = getch(); 
+			 if(judge == UP)
+			    choose = 3;
+			 if(judge == DOWN)
+			    choose = 2;
+	 		} 
+		  color(12);
+		  choose_1();
+    	  color(15);
+		  choose_2();
+    	  choose_3();
+    	  if(kbhit() == 1 && (judge = getch()) == 13)
+    	  {
+		  NewGame();
+		  GraphDelete(); 
+		  gotoxy(50,15);
+	      printf("聪明的小蛇"); 
+	      }
+      	}
+      	if(choose == 2)
+		{ 
+		  if(kbhit() == 1)
+     		{
+     		 judge = getch();
+    		 if(judge == 224)
+			    judge = getch(); 
+			 if(judge == UP)
+			    choose = 1;
+			 if(judge == DOWN)
+			    choose = 3;
+	 		} 
+		  color(12);
+		  choose_2();
+    	  color(15);
+		  choose_1();
+    	  choose_3();
+    	  if(kbhit() == 1 && (judge = getch()) == 13)
+    	  {
+		   choose_difficulty();
+	      }
+      	}
+      	if(choose == 3)
+		{ 
+		  if(kbhit() == 1)
+     		{
+     		 judge = getch();
+    		 if(judge == 224)
+			    judge = getch(); 
+			 if(judge == UP)
+			    choose = 2;
+			 if(judge == DOWN)
+			    choose = 1;
+	 		} 
+		  color(12);
+		  choose_3();
+    	  color(15);
+		  choose_1();
+    	  choose_2();
+    	  if(kbhit() == 1 && (judge = getch()) == 13)
+    	 	  break;
+      	}
+      	
+    }
+}
+
+void main()
+{ 
+    system("mode con cols=150 lines=40");
+	HideCursor();
+    graph();
+	game_start();
+}

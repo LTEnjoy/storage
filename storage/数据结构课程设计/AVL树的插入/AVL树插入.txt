@@ -1,0 +1,74 @@
+struct AVLtree
+{
+	int num; //节点存储的数字数据
+	AVLtree * left;
+	AVLtree * right;
+	int height; //存储当前节点的高度
+};
+
+int getHeight(AVLtree * node)
+{
+	if (node == NULL)
+		return -1;
+	else
+		return node->height;
+}
+
+AVLtree * SingleRotateWithLeft(AVLtree * root) //在树的左边进行的单旋转
+{
+	AVLtree * p = root->left;
+	p->right = root;
+	root->left = p->right;
+	root->height = getHeight(root->left) > getHeight(root->right) ? getHeight(root->left) + 1 : getHeight(root->right) + 1;
+	p->height = getHeight(p->left) > root->height ? p->left->height + 1 : root->height + 1;
+	return root;
+}
+
+AVLtree * SingleRotateWithRight(AVLtree * root) //在树的右边进行的单旋转
+{
+	AVLtree * p = root->right;
+	p->left = root;
+	root->right = p->left;
+	root->height = getHeight(root->left) > getHeight(root->right) ? getHeight(root->left) + 1 : getHeight(root->right) + 1;
+	p->height = getHeight(p->right) > root->height ? p->right->height + 1 : root->height + 1;
+	return root;
+}
+
+AVLtree * DoubleRotateWithLeft(AVLtree * root) //在树的左边进行的双旋转
+{
+	root->left = SingleRotateWithRight(root->left);
+	return SingleRotateWithLeft(root);
+}
+
+AVLtree * DoubleRotateWithRight(AVLtree * root) //在树的右边进行的双旋转
+{
+	root->right = SingleRotateWithLeft(root->right);
+	return SingleRotateWithRight(root);
+}
+
+AVLtree * Insert(int num, AVLtree * root) //向AVL树中插入节点
+{
+	if (root == NULL)
+		root = new AVLtree{ num,NULL,NULL,0 }; //如果树中无节点，则新建一个节点
+	else if (num < root->num)
+	{
+		root->left = Insert(num, root->left);
+		if (getHeight(root->left) - getHeight(root->right) == 2)
+			if (num < root->left->num)
+				root = SingleRotateWithLeft(root);
+			else
+				root = DoubleRotateWithLeft(root);
+	}
+	else if (num > root->num)
+	{
+		root->right = Insert(num, root->right);
+		if (getHeight(root->right) - getHeight(root->left) == 2)
+			if (num < root->right->num)
+				root = SingleRotateWithRight(root);
+			else
+				root = DoubleRotateWithRight(root);
+	}
+	root->height = (root->left->height >= root->right->height) ? (root->left->height + 1) : (root->right->height + 1); //三目运算符重新计算根节点的高度
+	return root;
+
+}

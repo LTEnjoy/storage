@@ -1,0 +1,14 @@
+int findMaxChild(int a[],int n)
+{
+	int max = -10000; //用-10000来代表负无穷
+	int i, sum = 0;      
+	for (i = 0;i < n;i++)
+	{
+		sum += a[i];
+		if (max < sum)
+			max = sum;
+		if (sum < 0)
+			sum = 0;
+	}
+	return max;
+}

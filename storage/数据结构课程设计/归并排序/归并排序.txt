@@ -1,0 +1,25 @@
+void  MergeSort(int a[],int b[],int head, int tail) // b数组为缓存数组
+{
+	if (head == tail)
+		return;
+	int center = (tail + head) / 2;
+	int i = head, j = center + 1; //i,j为两个指针
+	int k = head;
+	MergeSort(a, b,head, center);     //左右两边分别进行归并排序
+	MergeSort(a, b,center + 1, tail);
+	while (i < center +1 && j < tail+1)
+	{
+		if (a[i] <= a[j])
+			b[k++] = a[i++];
+		else
+			b[k++] = a[j++];
+	}
+	if (i == center + 1)           //把比较完后剩余的数据补进b数组
+		for (;j < tail + 1;j++)
+			b[k++] = a[j];
+	else
+		for (;i < center + 1;i++)
+			b[k++] = a[i];
+	for (k = head;k <= tail;k++)  //把b数组的数据写回去
+		a[k] = b[k];
+}

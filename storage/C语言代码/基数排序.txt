@@ -1,0 +1,82 @@
+struct  buc		//定义桶结构体
+{
+	int rank;	//代表桶的编号
+	int number;	//代表桶中数字的顺序
+	int num[20];//代表桶的容量
+	buc * next; //代表下一个桶的地址
+};
+
+buc * initialize(int B)  桶的初始化
+{
+	buc * p,* head;
+	p  = head = new buc{0,0,0,NULL};
+	for (int i = 1;i < B;i++)//循环将桶连接并进行初始化
+	{
+		buc * aBucket = new buc{ i,0,0,NULL };
+		aBucket->rank = i;
+		aBucket->number = 0;
+		p->next = aBucket;
+		p = p->next;
+	}
+	return head;
+}
+
+void sort(buc * head1, buc * head2, int digit, int B) // 遍历一个桶中的数字倒到另一个桶中排序,digit代表此时查找的位数 1为个位
+{
+	buc * p = head1;
+	buc * p2;
+	int temp;
+	for (;p != NULL; p = p->next)
+	{
+		for (int i = 0;i < p->number;i++)
+		{
+			temp = p->num[i];
+			for (int j = 1;j < digit;j++)
+				temp /= B;
+			temp %= B;
+			p2 = head2;
+			for (;p2 != NULL;p2 = p2->next)
+				if (temp == p2->rank)
+				{
+					p2->num[p2->number++] = p->num[i];
+					break;
+				}
+		}
+	}
+	p = head1;
+	for (;p != NULL;p = p->next)
+		p->number = 0;
+}
+
+void radixSort(int a[], int n,int max,int B)  //max代表数组的最高位为多少， B代表基数为多少
+{
+	if (max == 0)
+		return;
+	buc * head1, *head2;   //代表两排桶的头结点
+	head1 = initialize(B); //两个桶初始化
+	head2 = initialize(B);
+	buc * p;
+	for (int i = 0;i < n;i++)//将数组中的元素放入 head1 桶中
+	{
+		p = head1;
+		for (;p != NULL;p = p->next)
+			if (a[i] % B == p->rank)
+			{
+				p->num[p->number++] = a[i];
+				break;
+			}
+	}
+	for (int i = 1;i <= max;i++)  //两个桶来回倒进行排序
+	{
+		sort(head1, head2, i, B);
+		p = head1;
+		head1 = head2;
+		head2 = p;
+	}
+	p = head1;
+	int k = 0;
+	for (;p != NULL;p = p->next)// 将桶中的元素再放回数组
+		for (int i = 0;i < p->number;i++)
+			a[k++] = p->num[i];
+	free(head1), free(head2);
+}

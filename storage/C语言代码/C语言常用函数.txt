@@ -1,0 +1,524 @@
+
+1.
+光标函数：
+void gotoxy(int x, int y)（#include <windows.h>）
+{   
+    COORD pos;
+	HANDLE hOutput;
+	pos.X = x;
+	pos.Y = y;
+	hOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleCursorPosition(hOutput, pos);
+}
+
+2.
+颜色函数：
+int color(int c)
+{
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), c);        //更改文字颜色
+	return 0;
+}
+0 = 黑色 8 = 灰色
+1 = 蓝色 9 = 淡蓝色
+2 = 绿色 A = 淡绿色
+3 = 湖蓝色 B = 淡浅绿色
+4 = 红色 C = 淡红色
+5 = 紫色 D = 淡紫色
+6 = 黄色 E = 淡黄色
+7 = 白色 F = 亮白色
+
+3.
+随机函数：
+scanf("%d", &seed);
+srand(time(0) or seed);
+     i=(rand()%66)*10;		//66代表0~65共66个，10为该整数乘10
+
+4.
+制作掩码图
+void LoadPic()
+{
+	DWORD *pmemflower = GetImageBuffer(&snake);
+	DWORD *pmemmaskbitmap = GetImageBuffer(&snake_);
+	COLORREF maskbk = pmemflower[0];
+	for (int i = 0;i < 20 * 20;i++)
+	{
+		if (pmemflower[i] <= 0x555555 && pmemflower[i] >= 0)//0x55555555是深灰色
+		{
+			pmemmaskbitmap[i] = WHITE;
+		}
+		else
+			pmemmaskbitmap[i] = BLACK;
+	}
+}
+
+5.
+将数组中数字字符转化为数字
+int CharToInt(char n[])
+{
+	int num = 0;
+	int j;
+	int count;
+	count = strlen(n);
+	if (n[0] == '-')
+		for (j = 0;j < count - 1;j++)
+			num -= (n[count - j - 1] - '0')* chengfang(10, j);
+	else
+		for (j = 0;j < count;j++)
+			num += (n[count - j - 1] - '0')* chengfang(10, j);
+	return num;
+}
+
+6.
+void transfer(int num)   将整数按字符形式输出
+{
+	int i = 10;
+	if (num > i)
+		transfer(num/i);
+	while(num>10)
+		num %= i;
+	putchar(num+'0');
+}
+
+7.
+改变窗口大小函数：
+ system("mode con cols=150 lines=40");
+
+8.
+退出函数
+	printf("\n按q键退出");
+	while(getchar() != 'q')
+	;
+
+9.
+制造循环链表：
+struct num * p1, *p2, * p;
+
+struct num
+{
+	int num;
+	struct num * next;
+	struct num * last;
+};
+
+void people(int n, int i)		//首尾相接的链表
+{
+	p = p1 = (struct num *)malloc(size);
+	p1->num = 1;
+	for(i=1; i<n; i++)
+	{
+		p2 = (struct num *)malloc(size);
+		p1->next = p2;
+		p2->last = p1;
+		p1 = p2;
+		p1->num = i+1;
+	}
+	p1->next = p;
+	p->last = p1;
+	p1 = p;
+}
+
+10.阶乘函数：
+int jc(int n)     
+{
+	int i, sum;
+	sum = 1; 
+	for(i=1; i<=n; i++)
+	{
+		sum *= i;
+	}
+	return sum;
+} 
+
+11.
+排列组合函数：
+int func(int n, int m)      
+{
+	int i;
+	i = jc(m) / ( jc(m-n) * jc(n) );
+	return i;
+} 
+
+12.
+打印二维数组函数：
+for(j=0; j<n; j++)
+	{
+		for(i=0; i<n; i++)
+		{
+			printf("%-3d", a[j][i]);
+		}
+		printf("\n");	
+	}
+
+13.
+int chengfang(int n, int m)  乘方函数
+{
+	int i, k;
+		k = 1;
+	for (i = 0; i < m; i++)
+		k *= n;
+	return k;
+}
+
+
+14.
+void rank(int n[], int m)     //冒泡排序函数 
+{
+	int k;
+	for(int j=m-1; j>0; j--)
+		for(int i=0; i<j; i++)
+			if(n[i] < n[i+1])
+			{
+				k = n[i];
+				n[i] = n[i+1];
+				n[i+1] = k;
+			}
+} 
+
+15.
+void rank(int n[], int m)     //选择排序函数
+{
+	int i, j, k, p;
+	for(j=0; j<m-1; j++)
+	{
+		k = j;
+		for(i=j; i<9; i++)
+			if(n[k] < n[i+1])
+				k = i+1;
+		if(k != j)
+		{
+			p = n[j];
+			n[j] = n[k];
+			n[k] = p;
+		}
+	}
+} 
+
+16.
+int bin_search(int a[], int n, int x)
+{
+	int first = 0, last = n - 1;
+	int mid;
+	while (first <= last)
+	{
+		mid = (first + last) / 2;
+		if (x > a[mid])
+			first = mid + 1;
+		else if (x < a[mid])
+			last = mid - 1;
+		else
+			return mid;
+	}
+	return -1;
+}
+
+17.
+插入音乐
+#include<Windows.h>
+#pragma comment(lib,"winmm.lib")
+int main()
+{
+	PlaySound("C:\\Users\\15716\\source\\repos\\Project10\\1.wav", NULL, SND_FILENAME | SND_ASYNC | SND_LOOP);
+	PlaySound("路径\\文件名.wav",NULL,SND_PURGE);//停止播放
+	while (1);//防止直接退出程序
+	return 0;
+}
+
+18.
+struct node			  //二叉树结构体
+{
+	int num;
+	int judge = 0;
+	(struct node *) left;
+	(struct node *) right;
+	(struct node *) last;
+};
+void main()				//遍历二叉树
+{
+	p = root;
+	while (p->last != NULL)
+	{
+		if (p->left != NULL && p->judge == 0)
+		{
+			p = p->left;
+			p->jugde = 1;
+		}
+		else if (p->right != NULL && p->judge == 1)
+		{
+			p = p->right;
+			p->judge = 2;
+		}
+		else
+			p = p->last;
+	}
+}
+
+19.希尔排序
+void rank(int num[], int n)
+{
+	int i, k;
+	i = 0;
+	n /= 2;
+	while (n != 0)
+	{
+		for (int j = 0;j < 1000 / n - 1;j++)
+		{
+			while (i + n < 1000)
+			{
+				if (num[i] > num[i + n])
+				{
+					k = num[i];
+					num[i] = num[i + n];
+					num[i + n] = k;
+				}
+				i++;
+			}
+			i = 0;
+		}
+		n /= 2;
+	}
+}
+
+20.快速排序
+void QuickRank(int n[], int i0, int j0)
+{
+	int key, i, j;
+	i = i0, j = j0;
+	key = n[i];
+	while (i != j)
+	{
+		while (1)
+		{
+			if (i == j)
+				break;
+			j--;
+			if (n[j] >= key)
+				continue;
+			else
+			{
+				n[i] = n[j];
+				n[j] = key;
+				break;
+			}
+		}
+		while (1)
+		{
+			if (i == j)
+				break;
+			i++;
+			if (n[i] <= key)
+				continue;
+			else
+			{
+				n[j] = n[i];
+				n[i] = key;
+				break;
+			}
+		}
+	}
+	if (i - i0 >= 2)
+		QuickRank( n, i0, i);
+	if (j0 - j >= 2)
+		QuickRank( n, j+1, j0);
+}
+
+21.插入排序
+void insSort(int a[], int n)
+{
+	int i, j, key;
+
+	for (i = 1;i < n;i++)
+	{
+		key = a[i];
+		for (j = i - 1;j >= 0 && a[j] > key;j--)
+		{
+			a[j + 1] = a[j];
+			a[j] = key;
+		}
+	}
+}
+
+21. 求幂的递归代码
+int power (int x, int n)
+{
+int tmp;
+if (0 == n)
+return (1);
+tmp = power (x, n/2);
+if (0 == n % 2)
+return (tmp*tmp);
+return (tmp*tmp*x);
+}
+
+22.求幂的迭代代码
+int power(int x, int n)
+{
+	int res = 1;
+	if (0 == n)
+		return (1);
+	for (;n > 0;n = n >> 1，x*=x)
+		if (1 == n % 2)
+			res *= x;
+	return(res);
+}
+
+23.艾拉托斯特尼筛法    筛选素数
+for (i = 2; i *i <= n;i++)          给定范围2~n,以2为筛子，筛掉2以及2的倍数，再以3为筛子·····
+{
+	if (num[i] == -1)
+		continue;
+	for (k = i; k*i < n; k++)
+	{
+		if (num[k*i] == -1)
+			continue;
+		num[k*i] = -1;
+	}
+}
+
+24.分治法求数组主元素
+bool check(int a[], int head, int tail,int num) //检查是否为主元素
+{
+	int count = 0;
+	for (int i = head;i <= tail;i++)
+	{
+		if (a[i] == num)
+			count++;
+	}
+	if (count > (tail - head + 1) / 2)
+		return true;
+	else
+		return false;
+}
+
+int search(int a[], int head, int tail)
+{
+	if (tail == head)  //一个元素直接返回
+		return a[head];
+	int left = 0, right = 0;  //左右两部分各自的主元素,默认数组中没有0，所以0代表没有主元素
+	left = search(a, head, (head + tail) / 2);
+	right = search(a, (head + tail) / 2 + 1, tail);
+	if (left == 0 && right == 0)
+		return 0;
+	else if (left == right)
+		return left;
+	else
+	{
+		if (check(a, head, tail, left) == true)
+			return left;
+		else if (check(a, head, tail, right) == true)
+			return right;
+		else
+			return 0;
+	}
+}
+
+25.计数比较法找数组主元素
+int search0(int a[],int n)
+{
+	if (n == 0) //剩0个元素说明没有主元素
+		return 0;
+	if (n == 1)	//剩1个元素说明是主元素
+		return a[n - 1];
+	if (n % 2 != 0)		//若数组长度为奇数，直接判断最后一个数是否为主元素
+	{					//若不为主元素则舍弃最后一个数
+		if (check(a, 0, n - 1, a[n - 1]) == true)
+			return a[n - 1];
+	}
+	else //数组长度为偶数1
+	{
+		int count = 0;
+		for (int i = 0, j = 0;i < n;i += 2, j++)//运用比较计数法形成子数组
+		{
+			if (a[i] == a[i + 1])
+			{
+				a[j] = a[i];
+				count++;
+			}
+		}
+		return search0(a, count);  //调用递归
+	}
+	
+	int count = 0;
+	for (int i = 0, j = 0;i < n-1;i += 2, j++)//若数组有奇数个元素则去掉最后一个数
+	{
+		if (a[i] == a[i + 1])
+		{
+				a[j] = a[i];
+				count++;
+		}
+	}
+	return search0(a, count);//调用递归
+}
+bool check(int a[], int head, int tail,int num) //检查是否为主元素
+{
+	int count = 0;
+	for (int i = head;i <= tail;i++)
+	{
+		if (a[i] == num)
+			count++;
+	}
+	if (count > (tail - head + 1) / 2)
+		return true;
+	else
+		return false;
+}
+
+26.游标法实现约瑟夫环
+struct Node
+{
+	int num;            //代表每个人第一次排好时的标号
+	Node * next = NULL; //存储下一个节点的地址
+};
+
+struct Node Map[20];
+
+void initialize()
+{
+	for (int i = 0;i < 20;i++)
+	{
+		if (i != 19)
+			Map[i].next = &Map[i + 1];
+		else
+			Map[i].next = &Map[1];
+	}
+
+}
+
+void construct(int n)
+{	for (int i = 1;i <= n;i++)
+	{
+		Node * p = Map[0].next;
+		p->num = i;
+		Map[0].next = p->next;
+		if (i == n)
+			p->next = &Map[1];
+	}
+}
+
+void circulation(int m,int n)
+{
+	initialize();
+	construct(n);
+	int count;
+	int length = n;
+	Node * p = &Map[1];
+	while (length > 1)
+	{
+		if (m == 0)
+		{
+			printf("第%d号出局\n", (p->num));
+			p = p->next;
+			length--;
+		}
+		else
+		{
+			for (count = 0;count < m - 1;count++)
+			{
+				p = p->next;
+			}
+			printf("第%d号出局\n", (p->next)->num);
+			p->next = (p->next)->next;
+			length--;
+		}
+	}
+	printf("剩余第%d号", p->num); 
+}

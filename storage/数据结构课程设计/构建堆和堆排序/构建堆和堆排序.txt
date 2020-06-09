@@ -1,0 +1,32 @@
+#define leftChild(i) (2*(i) + 1)
+
+void percolateDown(int a[],int n,int i)
+{
+	int child;
+	int parent;
+	for (parent = a[i]; leftChild(i) < n;i = child)
+	{
+		child = leftChild(i);
+		if (child != n - 1 && a[child] < a[child + 1])
+			child++;
+		if (parent < a[child])
+			a[i] = a[child];
+		else
+			break;
+	}
+	a[i] = parent;
+}
+
+void headSort(int a[], int n)
+{
+	int i,temp;
+	for (i = n / 2;i >= 0;i--)	//先构建最大堆
+		percolateDown(a, n, i);
+	for (i = n - 1;i > 0;i--)  //将第一个元素和最后一个元素交换位置，并将此时第一个元素下滤
+	{
+		temp = a[0];
+		a[0] = a[i];
+		a[i] = temp;
+		percolateDown(a, i, 0);
+	}
+}
